@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/DifficultySnapshot.cs" Link="DifficultySnapshot.cs" />
+    <Compile Include="../../src/ReadinessPolicy.cs" Link="ReadinessPolicy.cs" />
+    <Compile Include="../../src/SavedRuleRecord.cs" Link="SavedRuleRecord.cs" />
+    <Compile Include="../../src/VolcanoTide.cs" Link="VolcanoTide.cs" />
+    <Compile Include="../../src/EnvironmentRecords.cs" Link="EnvironmentRecords.cs" />
+    <Compile Include="../../src/RuleZeroPolicy.cs" Link="RuleZeroPolicy.cs" />
+    <Compile Include="../../src/SnowWeatherState.cs" Link="SnowWeatherState.cs" />
+    <Compile Include="../../src/OpeningProtectionState.cs" Link="OpeningProtectionState.cs" />
+    <Compile Include="../../src/WeatherGraceState.cs" Link="WeatherGraceState.cs" />
+  </ItemGroup>
+</Project>
