@@ -8,4 +8,6 @@
 
 原作者 1.4.4 包内 DLL 与本项目原始样本一致。原模组发布说明中的简体中文本地化署名为 **chuxiaaaaaaa**，原封面署名为 **antsfrom_mars**。
 
+**测试贡献者**：抖音博主 **瓦吉咪**（抖音号：`1174228917`；GitHub：[ayingabc](https://github.com/ayingabc)）。感谢瓦吉咪大佬参与多轮 **天阶 20 难度测试**。
+
 PEAK 的原版雪暴视觉资源归相应权利人所有，不能作为本项目原创素材或单独开放许可资源使用。完整授权状态见 [LICENSING.md](LICENSING.md)。
