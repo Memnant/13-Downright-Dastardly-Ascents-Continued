@@ -40,7 +40,8 @@ internal static class WeatherRegression
             zoneType.GetField("windIntensityCurve", Flags).SetValue(zone, AnimationCurve.Linear(0, 1, 1, 1));
             // Keep native Update, Contains and both membership flags. Only replace networking,
             // the synthetic character's position and the final status delivery boundary.
-            harness.Patch(zoneType.GetMethod("HandleTime", Flags), prefix: new HarmonyMethod(typeof(WeatherRegression), "SkipNetworkClock"));
+            harness.Patch(zoneType.GetMethod("HandleTime", Flags), prefix: new HarmonyMethod(typeof(WeatherRegression), "SkipNetworkClock") { priority = Priority.First });
+            harness.Patch(mod.GetType("dda.RoomWeatherSync").GetMethod("Apply", Flags), prefix: new HarmonyMethod(typeof(WeatherRegression), "SkipNetworkClock"));
             harness.Patch(zoneType.GetMethod("ApplyStatus", Flags), prefix: new HarmonyMethod(typeof(WeatherRegression), "CaptureStatus") { priority = Priority.First });
             harness.Patch(AccessTools.PropertyGetter(characterType, "Center"), prefix: new HarmonyMethod(typeof(WeatherRegression), "CharacterPosition"));
             harness.Patch(AccessTools.PropertyGetter(characterType, "observedCharacter"), prefix: new HarmonyMethod(typeof(WeatherRegression), "ObservedCharacter"));
@@ -89,7 +90,8 @@ internal static class WeatherRegression
                 Assert((Bounds)bounds.GetValue(zone) == expanded, "repeated Awake/Update does not compound range");
                 zoneType.GetMethod("RPCA_ToggleWind", Flags).Invoke(zone, new object[] { false, Vector3.forward, 60f });
                 int before = applications; update.Invoke(zone, null);
-                Assert(applications == before && !(bool)wind.GetValue(zone), "native RPC can stop a storm normally");
+                Assert(enabled ? applications == before + 1 && (bool)wind.GetValue(zone) : applications == before && !(bool)wind.GetValue(zone),
+                    "tier 20 ignores stale native RPC; lower levels retain native weather RPC");
                 reset.Invoke(null, null);
                 Assert((Bounds)bounds.GetValue(zone) == baseline && !(bool)slippy.GetValue(zone), "airport reset restores bounds and slipperiness");
                 Assert((Vector2)off.GetValue(zone) == originalOff, "airport reset restores native rest interval");

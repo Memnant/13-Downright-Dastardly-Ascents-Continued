@@ -51,6 +51,8 @@ internal static class SnowWeatherSync
         {
             zone.windActive = false; zone.untilSwitch = zone.timeUntilNextWind = 1;
             zone.hasBeenActiveFor = 0;
+            zone.currentForceMult = 0;
+            zone.windIntensity = zone.windPlayerFactor = 0;
             return;
         }
         zone.windActive = value.active && value.Remaining(now) > 0;
@@ -59,5 +61,9 @@ internal static class SnowWeatherSync
         zone.currentWindDirection = Vector3.Lerp(Vector3.right * value.direction, Vector3.forward, .2f).normalized;
         // Native Update adds one deltaTime after HandleTime.
         zone.hasBeenActiveFor = zone.windActive ? Mathf.Max(0, (float)value.Elapsed(now) - Time.deltaTime) : 0;
+        zone.currentForceMult = Mathf.Clamp01(zone.windActive ? (float)value.Elapsed(now) : 1f - (float)value.Elapsed(now));
+        zone.StormProgress = zone.windActive ? Mathf.Clamp01(1 - zone.untilSwitch / value.duration) : 0;
+        zone.timeUntilStorm = zone.windActive ? 0 : Mathf.Clamp01(1 - zone.untilSwitch / value.duration);
+        zone.windIntensity = zone.windActive && zone.windIntensityCurve != null ? zone.windIntensityCurve.Evaluate(zone.StormProgress) : 0;
     }
 }

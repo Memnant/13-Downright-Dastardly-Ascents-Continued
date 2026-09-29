@@ -43,7 +43,7 @@ internal static class WeatherGraceRegression
             patches.Patch(grace.GetMethod("Publish", Flags), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "Publish"));
             patches.Patch(AccessTools.PropertyGetter(characterType, "Center"), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "Center"));
             patches.Patch(AccessTools.PropertyGetter(characterType, "observedCharacter"), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "Observed"));
-            patches.Patch(zoneType.GetMethod("HandleTime", Flags), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "SkipNetwork") { priority = Priority.Last });
+            patches.Patch(zoneType.GetMethod("HandleTime", Flags), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "SkipNetwork") { priority = Priority.First });
             patches.Patch(zoneType.GetMethod("ApplyStatus", Flags), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "Status") { priority = Priority.Last });
             patches.Patch(zoneType.GetMethod("AddWindForceToCharacter", Flags), prefix: new HarmonyMethod(typeof(WeatherGraceRegression), "Force"));
             var character = root.AddComponent(characterType); observer = character; local.SetValue(null, character);
@@ -121,7 +121,15 @@ internal static class WeatherGraceRegression
             // branches below so the fixture can count the final status delivery boundary.
             dayInstance.SetValue(null, null);
             rpc.Invoke(zone, new object[] { true, Vector3.forward, 20f });
-            Assert((bool)Get(zone, "windActive"), "normal host weather RPC resumes after expiry");
+            Assert(!(bool)Get(zone, "windActive"), "tier 20 continues to ignore legacy weather RPC after expiry");
+            Set(zone, "windTimeRangeOn", new Vector2(20, 20));
+            Set(zone, "windTimeRangeOff", new Vector2(40, 40));
+            var roomWeather = mod.GetType("dda.RoomWeatherSync");
+            roomWeather.GetMethod("Reset", Flags).Invoke(null, null);
+            roomWeather.GetMethod("Apply", Flags).Invoke(null, new[] { zone });
+            now = 335;
+            roomWeather.GetMethod("Apply", Flags).Invoke(null, new[] { zone });
+            Assert((bool)Get(zone, "windActive"), "shared host phase starts after grace and catches up before force calculation");
             statuses = forces = 0; update.Invoke(zone, null); Set(zone, "untilSwitch", 0f); physics.Invoke(zone, null);
             Assert(statuses == 1 && forces == 1, "native Update and FixedUpdate resume status/force routes");
             snow.GetMethod("Apply", Flags).Invoke(null, new object[] { zone });

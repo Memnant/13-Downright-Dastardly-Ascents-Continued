@@ -87,6 +87,21 @@ internal static class ClientRulesRegression
             receive.Invoke(null, new object[] { true });
             Assert((bool)enabled.Invoke(null, new object[] { 20 }), "promoted host adopts the room snapshot before publishing");
             host = false;
+            coordinator.GetMethod("ReturnToAirport", F).Invoke(null, null);
+            menu = true; baseAscent = 0;
+            receive.Invoke(null, new object[] { false });
+            Assert(!(bool)enabled.Invoke(null, new object[] { 20 }), "late joiner in menu waits before becoming host");
+            host = true;
+            var callbackRoot = new GameObject("Host handoff fixture"); callbackRoot.SetActive(false);
+            try
+            {
+                var callbacks = callbackRoot.AddComponent(mod.GetType("dda.ContinuedNetwork"));
+                callbacks.GetType().GetMethod("OnMasterClientSwitched", F).Invoke(callbacks, new object[] { player });
+            }
+            finally { UnityEngine.Object.DestroyImmediate(callbackRoot); }
+            Assert((bool)enabled.Invoke(null, new object[] { 20 }), "host migration during loading preserves running room rules before the native ascent arrives");
+            Assert(Equals(room.CustomProperties["dda.continued.running"], true), "loading successor does not overwrite active room with running=false");
+            host = false; menu = false; baseAscent = 8;
             coordinator.GetMethod("LeaveRoom", F).Invoke(null, null);
             Assert(!(bool)enabled.Invoke(null, new object[] { 20 }), "leaving room clears active rules");
             room.CustomProperties.Clear();

@@ -5,7 +5,7 @@ internal static class Game25SaveTests
     internal static void Run(Action<bool, string> check)
     {
         var id = Guid.NewGuid();
-        foreach (int target in new[] { 17, 18 })
+        foreach (int target in new[] { 17, 18, 19 })
         for (int patch = 0; patch <= target; patch++)
         foreach (var selected in new[] { (0, 0), (9, 0), (14, 0), (18, 0), (20, 0), (0, 1 << 9) })
         foreach (bool honor in new[] { false, true })
@@ -29,8 +29,10 @@ internal static class Game25SaveTests
             check(!copy.TryRead(id, "2.5.a", "1.6.0", out _), "unaudited mod migration rejected");
             if (patch >= 17)
                 check(!copy.TryRead(id, "2.4.c", "1.5.16", out _), "new game records cannot downgrade");
-            if (patch == 18)
+            if (patch >= 18)
                 check(!copy.TryRead(id, "2.5.a", "1.5.17", out _), "new mod records cannot silently downgrade");
+            if (patch == 19)
+                check(!copy.TryRead(id, "2.5.a", "1.5.18", out _), "weather release records cannot silently downgrade");
             if (patch > 0)
             {
                 copy.nativeSaveHash = "damaged";
@@ -46,5 +48,9 @@ internal static class Game25SaveTests
             "multiplayer repair requires matching updated peers");
         check(ReadinessPolicy.Check(current, "1.5.18", "1.5.18", current.Encode()) == PeerReadiness.Ready,
             "matching fixed peers accepted");
+        check(ReadinessPolicy.Check(current, "1.5.19", "1.5.18", current.Encode()) == PeerReadiness.VersionMismatch,
+            "all peers need the persistent native weather protocol");
+        check(ReadinessPolicy.Check(current, "1.5.19", "1.5.19", current.Encode()) == PeerReadiness.Ready,
+            "matching weather protocol peers accepted");
     }
 }

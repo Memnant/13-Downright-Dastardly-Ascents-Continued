@@ -45,6 +45,7 @@ public sealed class SmokeHarness : BaseUnityPlugin
             int swampFogAssertions = SwampFogRegression.Run(plugin.GetType().Assembly);
             int game25Assertions = Game25StatusRegression.Run(plugin.GetType().Assembly);
             int clientRulesAssertions = ClientRulesRegression.Run(plugin.GetType().Assembly);
+            int nativeWeatherSyncAssertions = NativeWeatherSyncRegression.Run(plugin.GetType().Assembly);
             success = ready && expected.Length > 0 && missing.Length == 0 && numericAssertions >= 90;
             File.WriteAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"),
                 (success ? "PASSED_LOAD" : "FAILED_LOAD") + "\nPluginReady=" + ready + "\nDistinctTargets=" + targets.Length + "\nMissingTargets=" + string.Join(",", missing) + "\nTemporaryStatsAssertions=" + numericAssertions + "\nTrackedStatsAssertions=" + trackedAssertions + "\nSyntheticNativeDragAssertions=" + dragAssertions + "\nRecoveryAndReleaseAssertions=" + regressionAssertions + "\nNativeSurfaceAndItemAssertions=" + surfaceAssertions + "\nCitadelParameterAndReadinessAssertions=" + citadelAssertions + "\n" + string.Join("\n", targets));
@@ -62,6 +63,7 @@ public sealed class SmokeHarness : BaseUnityPlugin
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nSwampFogAssertions=" + swampFogAssertions);
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nGame25StatusAssertions=" + game25Assertions);
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nClientRulesAssertions=" + clientRulesAssertions);
+            File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nNativeWeatherSyncAssertions=" + nativeWeatherSyncAssertions);
             Logger.LogInfo("SMOKE_RESULT=" + success + "; this is a load test only, no gameplay or multiplayer assertions.");
         }
         catch (Exception error)

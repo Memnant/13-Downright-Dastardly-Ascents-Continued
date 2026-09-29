@@ -75,13 +75,16 @@ internal static class RunCoordinator
         if (DifficultySnapshot.TryDecode(properties[RulesKey] as string, out var value))
         {
             Selected = value;
+            // A late joiner can become host before its island scene loads. Preserve
+            // the running room snapshot rather than publish its local menu state.
+            bool inheritingRunInMenu = acceptAsHost && IsHost && InMenu;
             // The host's running snapshot is authoritative. InRun alone only
             // proves a load callback ran, not that this peer adopted that snapshot.
             // Reconcile late delivery without resetting clocks on duplicate updates.
-            if (Equals(properties[RunningKey], true) && (!InMenu || departureAscent.HasValue || ResumePrepared))
+            if (Equals(properties[RunningKey], true) && (!InMenu || departureAscent.HasValue || ResumePrepared || inheritingRunInMenu))
             {
                 int baseAscent = departureAscent ?? Ascents.currentAscent;
-                if (!value.IsExtended || baseAscent == 8)
+                if (!value.IsExtended || baseAscent == 8 || inheritingRunInMenu)
                 {
                     if (!InRun || Active.Encode() != value.Encode()) Begin(value);
                 }
@@ -174,7 +177,8 @@ internal static class RunCoordinator
             Selected = Plugin.Selection(0); Publish(false);
             if (PhotonNetwork.InRoom) PhotonNetwork.CurrentRoom.SetCustomProperties(new Hashtable {
                 [TideSync.RoomKey] = null, [RuleZeroController.RoomKey] = null, [SnowWeatherSync.RoomKey] = null,
-                [SummitHonor.RoomKey] = null, [OpeningProtection.RoomKey] = null, [WeatherGrace.RoomKey] = null });
+                [SummitHonor.RoomKey] = null, [OpeningProtection.RoomKey] = null, [WeatherGrace.RoomKey] = null,
+                [RoomWeatherSync.WindKey] = null, [RoomWeatherSync.SnowKey] = null, [RoomWeatherSync.RainKey] = null });
         }
     }
 
@@ -191,6 +195,7 @@ internal static class RunCoordinator
         TideSync.Reset();
         RuleZeroController.Reset();
         SnowWeatherSync.Reset();
+        RoomWeatherSync.Reset();
         SummitHonor.Reset();
         OpeningProtection.Reset();
         WeatherGrace.Reset();
@@ -211,13 +216,14 @@ internal sealed class ContinuedNetwork : MonoBehaviourPunCallbacks
     }
     public override void OnLeftRoom() => RunCoordinator.LeaveRoom();
     public override void OnRoomPropertiesUpdate(Hashtable changed)
-    { RunCoordinator.Receive(); TideSync.Receive(); RuleZeroController.Receive(); SnowWeatherSync.Receive(); OpeningProtection.Receive(); WeatherGrace.Receive(); }
+    { RunCoordinator.Receive(); TideSync.Receive(); RuleZeroController.Receive(); SnowWeatherSync.Receive(); RoomWeatherSync.Receive(); OpeningProtection.Receive(); WeatherGrace.Receive(); }
     public override void OnMasterClientSwitched(NetworkPlayer next)
     {
         RunCoordinator.Receive(true);
         TideSync.Receive(true);
         RuleZeroController.Receive(true);
         SnowWeatherSync.Receive(true);
+        RoomWeatherSync.Receive(true);
         OpeningProtection.Receive(true);
         WeatherGrace.Receive(true);
         if (RunCoordinator.IsHost) { Plugin.AdoptHostOption(); RunCoordinator.Publish(RunCoordinator.InRun); }

@@ -105,5 +105,6 @@ internal static class WeatherGrace
 [HarmonyPatch(typeof(WindChillZone), "RPCA_ToggleWind")]
 internal static class ContinuedWeatherGraceRpc
 {
-    private static bool Prefix(WindChillZone __instance) => !WeatherGrace.Suppress(__instance);
+    private static bool Prefix(WindChillZone __instance) =>
+        !WeatherGrace.Suppress(__instance) && !RoomWeatherSync.Handles(__instance);
 }

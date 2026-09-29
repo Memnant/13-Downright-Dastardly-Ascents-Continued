@@ -41,12 +41,13 @@ public sealed class SavedRuleRecord
         // sidecars in memory only; RunSaveStore still verifies the exact native
         // checkpoint hash before accepting them. No game-version downgrade.
         bool compatibleGame = !string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame ||
-            (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18") && KnownPriorVersion(modVersion, 0));
+            (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19") && KnownPriorVersion(modVersion, 0));
         if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || !compatibleGame ||
             !DifficultySnapshot.TryDecode(rules, out snapshot)) return false;
         if (schema == 1) return modVersion == "1.5.0" &&
-            (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16" || expectedMod == "1.5.17" || expectedMod == "1.5.18");
+            (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16" || expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19");
         bool compatibleVersion = modVersion == expectedMod ||
+            (expectedMod == "1.5.19" && KnownPriorVersion(modVersion, 1, 18)) ||
             (expectedMod == "1.5.18" && KnownPriorVersion(modVersion, 1, 17)) ||
             (expectedMod == "1.5.17" && KnownPriorVersion(modVersion, 1)) ||
             (modVersion == "1.5.1" && expectedMod == "1.5.2") ||

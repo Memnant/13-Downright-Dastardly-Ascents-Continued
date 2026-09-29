@@ -127,6 +127,11 @@ internal static class ContinuedSnowClock
     private static bool Prefix(WindChillZone __instance)
     {
         if (WeatherGrace.Suppress(__instance)) return false;
+        if (RoomWeatherSync.Handles(__instance))
+        {
+            RoomWeatherSync.Apply(__instance);
+            return false;
+        }
         if (!EveryMapSnow.IsCreated(__instance)) return true;
         SnowWeatherSync.Apply(__instance);
         return false;
@@ -142,5 +147,12 @@ internal static class ContinuedSnowStart
 [HarmonyPatch(typeof(WindChillZone), "FixedUpdate")]
 internal static class ContinuedWeatherPhysics
 {
-    private static bool Prefix(WindChillZone __instance) => !EveryMapSnow.Suppress(__instance);
+    private static bool Prefix(WindChillZone __instance)
+    {
+        if (EveryMapSnow.Suppress(__instance)) return false;
+        // A late join must not spend a fresh local second ramping a mature storm.
+        if (RoomWeatherSync.Handles(__instance)) RoomWeatherSync.Apply(__instance);
+        else if (EveryMapSnow.IsCreated(__instance)) SnowWeatherSync.Apply(__instance);
+        return true;
+    }
 }
