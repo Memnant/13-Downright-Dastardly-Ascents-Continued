@@ -24,12 +24,16 @@ internal static class RunCoordinator
     internal const string VersionKey = "dda.continued.version";
     internal const string RulesKey = "dda.continued.rules";
     internal const string AckKey = "dda.continued.ack";
+    internal const string ActiveAckKey = "dda.continued.active";
     internal const string RunningKey = "dda.continued.running";
     internal static DifficultySnapshot Selected = DifficultySnapshot.Official;
     internal static DifficultySnapshot Active = DifficultySnapshot.Official;
     internal static bool InRun;
     internal static bool ResumePrepared;
     internal static string Notice = "";
+    // BeginIslandLoadRPC can arrive before the running room properties echo.
+    // Retain its base ascent until the next menu/room boundary.
+    private static int? departureAscent;
     internal static bool IsHost => !PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient;
     private static bool InMenu => SceneManager.GetActiveScene().name == "Airport" || SceneManager.GetActiveScene().name == "MainMenu";
 
@@ -46,9 +50,11 @@ internal static class RunCoordinator
         if (!PhotonNetwork.InRoom) return;
         var player = PhotonNetwork.LocalPlayer;
         string rules = Selected.Encode();
+        string active = InRun ? Active.Encode() : "";
         if ((string)player.CustomProperties[VersionKey] == Plugin.Version &&
-            (string)player.CustomProperties[AckKey] == rules) return;
-        player.SetCustomProperties(new Hashtable { [VersionKey] = Plugin.Version, [AckKey] = rules });
+            (string)player.CustomProperties[AckKey] == rules &&
+            (string)player.CustomProperties[ActiveAckKey] == active) return;
+        player.SetCustomProperties(new Hashtable { [VersionKey] = Plugin.Version, [AckKey] = rules, [ActiveAckKey] = active });
     }
 
     internal static void Publish(bool running)
@@ -69,9 +75,18 @@ internal static class RunCoordinator
         if (DifficultySnapshot.TryDecode(properties[RulesKey] as string, out var value))
         {
             Selected = value;
-            // Room snapshot is immutable for the duration of a run, including host migration.
-            if (Equals(properties[RunningKey], true) && !InRun && !InMenu) Begin(value);
-            else if (Equals(properties[RunningKey], false) && InMenu && !ResumePrepared)
+            // The host's running snapshot is authoritative. InRun alone only
+            // proves a load callback ran, not that this peer adopted that snapshot.
+            // Reconcile late delivery without resetting clocks on duplicate updates.
+            if (Equals(properties[RunningKey], true) && (!InMenu || departureAscent.HasValue || ResumePrepared))
+            {
+                int baseAscent = departureAscent ?? Ascents.currentAscent;
+                if (!value.IsExtended || baseAscent == 8)
+                {
+                    if (!InRun || Active.Encode() != value.Encode()) Begin(value);
+                }
+            }
+            else if (Equals(properties[RunningKey], false) && InMenu && !ResumePrepared && !departureAscent.HasValue)
             { InRun = false; Active = DifficultySnapshot.Official; }
         }
         else if (!IsHost && !InRun) Selected = DifficultySnapshot.Official;
@@ -117,15 +132,22 @@ internal static class RunCoordinator
     internal static void Begin(DifficultySnapshot snapshot, bool fresh = false)
     {
         bool initialize = !InRun || fresh;
+        bool changed = initialize || Active.Encode() != snapshot.Encode();
         Active = snapshot;
         Selected = snapshot;
         InRun = true;
         Notice = "";
         if (initialize) ResetTimers();
+        if (changed)
+        {
+            ContinuedHud.Refresh();
+            Plugin.Log.LogInfo($"Continued rules active: role={(IsHost ? "host" : "client")}, actor={PhotonNetwork.LocalPlayer?.ActorNumber ?? 0}, rules={snapshot.Encode()}, fresh={initialize}.");
+        }
     }
 
     internal static void ReceiveDeparture(int ascent)
     {
+        departureAscent = ascent;
         Receive();
         var snapshot = Selected;
         if (snapshot.IsExtended && ascent != 8)
@@ -134,6 +156,7 @@ internal static class RunCoordinator
             snapshot = DifficultySnapshot.Official;
         }
         Begin(snapshot);
+        Advertise();
     }
 
     internal static void ReturnToAirport()
@@ -141,9 +164,11 @@ internal static class RunCoordinator
         EveryMapSnow.Reset();
         InRun = false;
         ResumePrepared = false;
+        departureAscent = null;
         Active = DifficultySnapshot.Official;
         EffectState.Reset();
         ResetTimers();
+        ContinuedHud.Clear();
         if (IsHost)
         {
             Selected = Plugin.Selection(0); Publish(false);

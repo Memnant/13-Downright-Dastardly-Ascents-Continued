@@ -7,5 +7,8 @@
     <Reference Include="$(GamePath)/PEAK_Data/Managed/UnityEngine.CoreModule.dll" />
     <Reference Include="$(GamePath)/PEAK_Data/Managed/UnityEngine.ParticleSystemModule.dll" />
     <Reference Include="$(GamePath)/PEAK_Data/Managed/UnityEngine.PhysicsModule.dll" />
+    <Reference Include="$(GamePath)/PEAK_Data/Managed/PhotonUnityNetworking.dll" />
+    <Reference Include="$(GamePath)/PEAK_Data/Managed/PhotonRealtime.dll" />
+    <Reference Include="$(GamePath)/PEAK_Data/Managed/Photon3Unity3D.dll" />
   </ItemGroup>
 </Project>

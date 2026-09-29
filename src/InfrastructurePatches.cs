@@ -26,11 +26,20 @@ internal static class IndependentAscentProgress
 [HarmonyPatch(typeof(AscentUI), "Start")]
 internal static class ContinuedHud
 {
+    private static AscentUI current;
+    private static string officialText;
     private static void Postfix(AscentUI __instance)
     {
-        if (Rules.Snapshot.IsExtended && __instance.text != null)
-            __instance.text.text = "续作天阶 " + Rules.Level;
+        current = __instance;
+        officialText = __instance.text == null ? "" : __instance.text.text;
+        Refresh();
     }
+    internal static void Refresh()
+    {
+        if (current != null && current.text != null)
+            current.text.text = Rules.Snapshot.IsExtended ? "续作天阶 " + Rules.Level : officialText;
+    }
+    internal static void Clear() { current = null; officialText = null; }
 }
 
 [HarmonyPatch(typeof(Quicksave), "SaveNow")]

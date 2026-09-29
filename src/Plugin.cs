@@ -13,7 +13,7 @@ namespace dda;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "13dastardlyascents";
-    public const string Version = "1.5.17";
+    public const string Version = "1.5.18";
     public const string SupportedGame = "2.5.a";
     internal static ManualLogSource Log;
     internal static bool Ready;
