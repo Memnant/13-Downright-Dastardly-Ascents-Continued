@@ -121,7 +121,7 @@
 ## 致谢与贡献者
 
 - **pooblives**：原模组、核心天阶设计和被适配的代码。
-- **测试贡献者：抖音博主瓦吉咪**（抖音号：`1174228917`；GitHub：[ayingabc](https://github.com/ayingabc)）。特别感谢瓦吉咪大佬参与多轮 **天阶 20 难度测试**。
+- **测试贡献者：抖音博主瓦吉咪**（抖音号：`1174228917`；GitHub：[ayingabc](https://github.com/ayingabc)）。特别感谢瓦吉咪大佬参与多轮测试，并对新地图雾沼在天阶 20 下的天气影响与难度体验提供了实测反馈。
 - 原模组发布说明鸣谢 **chuxiaaaaaaa** 的简体中文本地化，以及 **antsfrom_mars** 的原封面。
 - PEAK 的开发者与 BepInEx、Harmony 等工具维护者。
 
