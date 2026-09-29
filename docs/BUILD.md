@@ -1,6 +1,6 @@
 # 从源码构建
 
-本仓库运行时 `src/**/*.cs` 与已交付 1.5.16 一致。开发环境以 **Windows x64、PowerShell、PEAK 2.4.c / Build 25306743、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。
+本仓库运行时 `src/**/*.cs` 对应 1.5.17。开发环境以 **Windows x64、PowerShell、PEAK 2.5.a / Build 25585932、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。
 
 ## 准备
 
@@ -21,6 +21,8 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 
 提取器核查版本及主程序集哈希，输出 `src/Resources/NativeAlpineSnow.bundle` 和本地来源报告；不会改写游戏文件。该 bundle 被 Git 忽略，构建时嵌入 DLL。玩家直接使用 Release DLL 时无需 Python。
 
+2.5 将资源合并进 `data.unity3d`；提取器只解压所需资源对应的块，不把整个游戏包展开到内存或磁盘。此步骤只在构建时执行。
+
 ## 构建和检查
 
 以下每次指定自己的游戏路径，不依赖脚本中的本机默认路径：
@@ -40,7 +42,7 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 
 它启动隐藏的 `-batchmode -nographics` 游戏测试子进程，使用项目内独立 BepInEx 配置，仅加载本模组和测试夹具。测试结束退出子进程并核对原生存档/游戏程序集哈希。它不做真实画面、操控或多人房间验证。
 
-`tests/Test-Installer.ps1` 用模拟目录检查备份、安装和回滚。它另需开发者自行将原模组样本放入本地 `original/13dda.dll`；该目录不发布。首次来源确认见 [UPSTREAM.md](UPSTREAM.md)。
+`tests/Test-Installer.ps1` 用模拟目录检查备份、安装和回滚，默认从本机已安装的 Continued DLL 读取旧插件样本，也可用 `-BaselineDll '旧版本的13dda.dll完整路径'` 指定。它不改写真实插件或存档。首次来源确认见 [UPSTREAM.md](UPSTREAM.md)。
 
 ## 维护入口
 

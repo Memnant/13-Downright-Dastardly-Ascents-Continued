@@ -146,7 +146,7 @@ internal static class SurfaceRegression
                         ResetCounters(); jellyfish.Invoke(null, new[] { character });
                         Assert(statusCalls == 1 && Math.Abs(statusAmount - .4f) < .00001f, "jellyfish delivery excludes tier-17 poison amplification");
                     }
-                    ResetCounters(); addStatus.Invoke(capturedAffliction, new object[] { poison, .2f, true, false, false, false });
+                    ResetCounters(); addStatus.Invoke(capturedAffliction, new object[] { poison, .2f, true, false, false, false, false });
                     Assert(statusCalls == 1 && Math.Abs(statusAmount - (level >= 17 ? .35f : .2f)) < .00001f,
                         "unrelated poison still receives tier 17 after either coastal source returns: level=" + level + ", delivered=" + statusAmount);
                 }
@@ -157,7 +157,7 @@ internal static class SurfaceRegression
             catch (TargetInvocationException e) when (e.InnerException is InvalidOperationException) { contactThrew = true; }
             throwOnStatus = false;
             Assert(contactThrew && (float)collisionType.GetField("damage", Flags).GetValue(collision) == .1f, "failed contact restores damage");
-            ResetCounters(); addStatus.Invoke(capturedAffliction, new object[] { poison, .2f, true, false, false, false });
+            ResetCounters(); addStatus.Invoke(capturedAffliction, new object[] { poison, .2f, true, false, false, false, false });
             Assert(Math.Abs(statusAmount - .35f) < .00001f, "failed contact cannot leak the coastal exception to later poison");
 
             Set("applyPetrify", false); Set("statusAmount", .1f); throwInCallback = true;

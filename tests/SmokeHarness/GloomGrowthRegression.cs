@@ -75,7 +75,7 @@ internal static class GloomGrowthRegression
                 float multiplier = kind == "Drowsy" ? 1f : kind == "Cold" ? 1.3f : kind == "Hot" ? 1.5f : 1.75f;
                 foreach (float input in new[] { -.1f, 0f, .1f })
                 {
-                    add.Invoke(fixtureAfflictions, new object[] { Enum.Parse(status.FieldType, kind), input, false, false, false, false });
+                    add.Invoke(fixtureAfflictions, new object[] { Enum.Parse(status.FieldType, kind), input, false, false, false, false, false });
                     Assert(Math.Abs(delivered - input * (input > 0 ? multiplier : 1f)) < 1e-7f,
                         "only positive sleep loses tier-17 scaling in swamp; direct sources and other statuses retain their rules");
                 }
@@ -92,7 +92,7 @@ internal static class GloomGrowthRegression
             running.SetValue(null, true);
             void CheckSleep(float expected, string reason)
             {
-                add.Invoke(fixtureAfflictions, new object[] { drowsy, .1f, false, false, false, false });
+                add.Invoke(fixtureAfflictions, new object[] { drowsy, .1f, false, false, false, false, false });
                 Assert(Math.Abs(delivered - expected) < 1e-7f, reason);
             }
             return checks;

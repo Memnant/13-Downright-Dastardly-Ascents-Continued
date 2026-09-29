@@ -18,3 +18,5 @@ backups/
 src/Resources/*.bundle
 BepInEx/
 .vs/
+__pycache__/
+*.pyc

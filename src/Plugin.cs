@@ -13,8 +13,8 @@ namespace dda;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "13dastardlyascents";
-    public const string Version = "1.5.16";
-    public const string SupportedGame = "2.4.c";
+    public const string Version = "1.5.17";
+    public const string SupportedGame = "2.5.a";
     internal static ManualLogSource Log;
     internal static bool Ready;
     internal static readonly ConfigEntry<bool>[] ForcedLevels = new ConfigEntry<bool>[12];
@@ -31,7 +31,7 @@ public sealed class Plugin : BaseUnityPlugin
             string versionFile = Path.Combine(Paths.GameRootPath, "version.txt");
             string gameVersion = File.ReadAllLines(versionFile)[0].Trim();
             if (gameVersion != SupportedGame)
-                throw new NotSupportedException($"This build targets PEAK {SupportedGame}; found {gameVersion}.");
+                throw new NotSupportedException($"Continued {Version} targets PEAK {SupportedGame}; found {gameVersion}. Install the matching Continued release; game updates can change status and save interfaces.");
             for (int level = 9; level <= 20; level++)
             {
                 ForcedLevels[level - 9] = Config.Bind("Ascents", "Ascent " + level, false,

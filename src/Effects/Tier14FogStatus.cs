@@ -14,7 +14,8 @@ internal static class Tier14FogStatus
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var original = AccessTools.Method(typeof(CharacterAfflictions), nameof(CharacterAfflictions.AddStatus),
-            new[] { typeof(CharacterAfflictions.STATUSTYPE), typeof(float), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+            new[] { typeof(CharacterAfflictions.STATUSTYPE), typeof(float), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+        if (original == null) throw new MissingMethodException("PEAK 2.5 CharacterAfflictions.AddStatus (7 parameters) is required.");
         var replacement = AccessTools.Method(typeof(Tier14FogStatus), nameof(AddFogStatus));
         var code = new List<CodeInstruction>(instructions);
         int replaced = 0;
@@ -30,10 +31,10 @@ internal static class Tier14FogStatus
     }
 
     private static bool AddFogStatus(CharacterAfflictions recipient, CharacterAfflictions.STATUSTYPE statusType,
-        float amount, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility)
+        float amount, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility, bool ignoreSkeleton)
     {
         if (SwampChasingFog.ActiveRegion)
-            return SwampChasingFog.AddStatus(recipient, fromRPC, playEffects, notify, ignoreInvincibility);
+            return SwampChasingFog.AddStatus(recipient, fromRPC, playEffects, notify, ignoreInvincibility, ignoreSkeleton);
         if (amount > 0 && Rules.Enabled(14) && Rules.Owns(recipient.character) && !StatusReplication.Active &&
             TryGetBiome(out var biome))
         {
@@ -46,7 +47,7 @@ internal static class Tier14FogStatus
             else if (statusType == CharacterAfflictions.STATUSTYPE.Injury)
                 amount *= 3f; // Native skeleton base is already divided by eight.
         }
-        // PEAK 2.4.c sets isInFog AFTER AddStatus, whereas the old mod set it before.
+        // PEAK sets isInFog AFTER AddStatus, whereas the old mod set it before.
         // Let the existing tier-12 skeleton rule recognize this exact fog injury;
         // otherwise it treats it as ordinary injury and multiplies it by 99.
         var data = recipient.character.data;
@@ -55,7 +56,7 @@ internal static class Tier14FogStatus
         try
         {
             // Normal immunity, status limits, networking and tier 17 still run once.
-            return recipient.AddStatus(statusType, amount, fromRPC, playEffects, notify, ignoreInvincibility);
+            return recipient.AddStatus(statusType, amount, fromRPC, playEffects, notify, ignoreInvincibility, ignoreSkeleton);
         }
         finally { if (markFog) data.isInFog = false; }
     }

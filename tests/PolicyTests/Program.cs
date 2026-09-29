@@ -74,6 +74,7 @@ BalanceSaveTests.Run(Check);
 SwampBalanceSaveTests.Run(Check);
 FogStatusSaveTests.Run(Check);
 SwampFogSaveTests.Run(Check);
+Game25SaveTests.Run(Check);
 object allocation = args.Length > 1 ? AllocationRegression.Run(args[1], Check) : null;
 var report = new { Status = "PASSED_POLICY", Assertions = checks, EngineExecuted = false, MultiplayerExecuted = false,
     AllocationBenchmark = allocation,

@@ -37,11 +37,18 @@ public sealed class SavedRuleRecord
     public bool TryRead(Guid expectedRun, string expectedGame, string expectedMod, out DifficultySnapshot snapshot)
     {
         snapshot = DifficultySnapshot.Official;
-        if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || gameVersion != expectedGame ||
+        // 2.5 keeps the native RunId/checkpoint format. Migrate known 2.4.c
+        // sidecars in memory only; RunSaveStore still verifies the exact native
+        // checkpoint hash before accepting them. No game-version downgrade.
+        bool compatibleGame = !string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame ||
+            (gameVersion == "2.4.c" && expectedGame == "2.5.a" && expectedMod == "1.5.17" && KnownPriorVersion(modVersion, 0));
+        if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || !compatibleGame ||
             !DifficultySnapshot.TryDecode(rules, out snapshot)) return false;
         if (schema == 1) return modVersion == "1.5.0" &&
-            (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16");
-        bool compatibleVersion = modVersion == expectedMod || (modVersion == "1.5.1" && expectedMod == "1.5.2") ||
+            (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16" || expectedMod == "1.5.17");
+        bool compatibleVersion = modVersion == expectedMod ||
+            (expectedMod == "1.5.17" && KnownPriorVersion(modVersion, 1)) ||
+            (modVersion == "1.5.1" && expectedMod == "1.5.2") ||
             (expectedMod == "1.5.3" && (modVersion == "1.5.1" || modVersion == "1.5.2")) ||
             (expectedMod == "1.5.4" && (modVersion == "1.5.1" || modVersion == "1.5.2" || modVersion == "1.5.3")) ||
             (expectedMod == "1.5.5" && (modVersion == "1.5.1" || modVersion == "1.5.2" || modVersion == "1.5.3" || modVersion == "1.5.4")) ||
@@ -60,6 +67,12 @@ public sealed class SavedRuleRecord
             checkpointSegment < 0 || checkpointSegment > 6 || !WireJson.Finite(checkpointTime) || checkpointTime < 0) return false;
         return (!snapshot.Enabled(14) || tidePhase.HasValue) && (!tidePhase.HasValue || VolcanoTide.ValidPhase(tidePhase.Value));
     }
+    private static bool KnownPriorVersion(string value, int minimum)
+    {
+        return System.Version.TryParse(value, out var version) && version.ToString() == value &&
+            version.Major == 1 && version.Minor == 5 && version.Build >= minimum && version.Build <= 16 && version.Revision == -1;
+    }
+
     private static bool IsHash(string value)
     {
         if (value == null || value.Length != 64) return false;

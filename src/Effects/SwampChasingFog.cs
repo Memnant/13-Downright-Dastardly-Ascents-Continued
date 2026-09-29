@@ -94,7 +94,7 @@ internal static class SwampChasingFog
         Initialize(handler, !Mathf.Approximately(handler.currentSize, handler.origins[handler.currentID].size));
     }
 
-    internal static bool AddStatus(CharacterAfflictions recipient, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility)
+    internal static bool AddStatus(CharacterAfflictions recipient, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility, bool ignoreSkeleton)
     {
         var context = GetContext();
         if (context == null || Singleton<OrbFogHandler>.Instance == null || Singleton<OrbFogHandler>.Instance.currentID != (int)Segment.Caldera ||
@@ -106,7 +106,7 @@ internal static class SwampChasingFog
         // Add TWO native rates. The existing ambient field adds its own ONE rate,
         // when in that field. Tier 17 still applies once; tier 20 swamp is exempt.
         return recipient.AddStatus(CharacterAfflictions.STATUSTYPE.Drowsy, context.sleepRate * 2f * Time.deltaTime,
-            fromRPC, playEffects, notify, ignoreInvincibility);
+            fromRPC, playEffects, notify, ignoreInvincibility, ignoreSkeleton);
     }
 
     internal static void Reset()

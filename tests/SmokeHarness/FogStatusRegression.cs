@@ -11,7 +11,7 @@ internal static class FogStatusRegression
     private static int calls;
     private static string deliveredType;
     private static float deliveredAmount;
-    private static bool deliveredFlags, deliveredIgnoreInvincibility, allowNative, returned, throwOnStatus;
+    private static bool deliveredFlags, deliveredIgnoreInvincibility, deliveredIgnoreSkeleton, allowNative, returned, throwOnStatus;
 
     internal static int Run(Assembly mod)
     {
@@ -101,6 +101,14 @@ internal static class FogStatusRegression
                     "repeated fog ticks neither duplicate delivery nor compound the multiplier");
             }
             var statusType = afflictionType.GetNestedType("STATUSTYPE");
+            Select(0);
+            var bridge = mod.GetType("dda.Tier14FogStatus").GetMethod("AddFogStatus", Flags);
+            foreach (bool ignoreSkeleton in new[] { false, true })
+            {
+                bridge.Invoke(null, new object[] { target, Enum.Parse(statusType, "Cold"), .001f, false, true, true, false, ignoreSkeleton });
+                Assert(deliveredIgnoreSkeleton == ignoreSkeleton, "2.5 fog bridge forwards the skeleton flag unchanged");
+            }
+            Select(20);
             Direct("Cold", .1f); Assert(deliveredType == "Cold" && Math.Abs(deliveredAmount - .13f) < 1e-7f, "cold outside FogSphere is not converted");
             Direct("Poison", .1f); Assert(deliveredType == "Poison" && Math.Abs(deliveredAmount - .175f) < 1e-7f, "other poison does not get fog triple multiplier");
             Set(data, "_isSkeleton", true); Set(data, "isInFog", false); Direct("Injury", .001f);
@@ -144,7 +152,7 @@ internal static class FogStatusRegression
             {
                 Set(map, "currentSegment", segment); biome.SetValue(segments.GetValue(segment), Enum.ToObject(biome.FieldType, kind));
             }
-            void Direct(string kind, float amount) => add.Invoke(target, new object[] { Enum.Parse(statusType, kind), amount, false, true, true, false });
+            void Direct(string kind, float amount) => add.Invoke(target, new object[] { Enum.Parse(statusType, kind), amount, false, true, true, false, false });
         }
         finally
         {
@@ -156,13 +164,14 @@ internal static class FogStatusRegression
         void Assert(bool pass, string reason) { if (!pass) throw new Exception(reason); checks++; }
     }
     private static bool Center(ref Vector3 __result) { __result = position; return false; }
-    private static bool Capture(object __instance, object statusType, float amount, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility, ref bool __result)
+    private static bool Capture(object __instance, object statusType, float amount, bool fromRPC, bool playEffects, bool notify, bool ignoreInvincibility, bool ignoreSkeleton, ref bool __result)
     {
         if (!ReferenceEquals(__instance, target)) return true;
         if (throwOnStatus) throw new InvalidOperationException("Expected fog fixture failure");
         calls++; deliveredType = statusType.ToString(); deliveredAmount = amount;
         deliveredIgnoreInvincibility = ignoreInvincibility;
-        deliveredFlags = !fromRPC && playEffects && notify && !ignoreInvincibility;
+        deliveredIgnoreSkeleton = ignoreSkeleton;
+        deliveredFlags = !fromRPC && playEffects && notify && !ignoreInvincibility && !ignoreSkeleton;
         if (allowNative) return true;
         __result = true; return false;
     }

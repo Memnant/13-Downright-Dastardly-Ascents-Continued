@@ -1,4 +1,4 @@
-param([string]$GamePath='D:\Steam\steamapps\common\PEAK')
+param([string]$GamePath='D:\Steam\steamapps\common\PEAK', [string]$BaselineDll)
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path $PSScriptRoot -Parent
 $fixture=Join-Path $projectRoot ('artifacts\installer-fixture-'+[Guid]::NewGuid().ToString('N'))
@@ -14,9 +14,10 @@ New-Item -ItemType Directory -Path (Split-Path $native -Parent),(Split-Path $rec
 $nativeHash=(Get-FileHash -LiteralPath $native).Hash
 $recordHash=(Get-FileHash -LiteralPath $record).Hash
 New-Item -ItemType Directory -Path (Split-Path $old -Parent),$core,(Split-Path $config -Parent) -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $projectRoot 'original\13dda.dll') -Destination $old
+if (-not $BaselineDll) { $BaselineDll = Join-Path $GamePath 'BepInEx\plugins\PeakAscentsContinued\13dda.dll' }
+Copy-Item -LiteralPath $BaselineDll -Destination $old
 Copy-Item -LiteralPath (Join-Path $GamePath 'BepInEx\core\Mono.Cecil.dll') -Destination $core
-'2.4.c' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'2.5.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 "[Ascents]`nAscent 9 = true`nAscent 8 = true" | Set-Content -LiteralPath $config -Encoding UTF8
 $oldHash=(Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash
 $configHash=(Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash

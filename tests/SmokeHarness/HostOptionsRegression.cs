@@ -123,11 +123,11 @@ internal static class HostOptionsRegression
             Assert((bool)Get(data, "isInvincible"), "new run protection reaches native invincibility flag");
             var addStatus = afflictionsType.GetMethod("AddStatus", Flags);
             var injury = Enum.Parse(addStatus.GetParameters()[0].ParameterType, "Injury");
-            Assert(!(bool)addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false }),
+            Assert(!(bool)addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false, false }),
                 "native injury gate blocks damage instead of ascent 12's 25 percent leakage");
             patches.Patch(addStatus, prefix: new HarmonyMethod(typeof(HostOptionsRegression), "Damage") { priority = Priority.Last });
             interceptDamage = true;
-            addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false });
+            addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false, false });
             Assert(!ignoresInvincibility && Math.Abs(damage - .4f) < .00001f, "opening protection bypasses only the old invincibility nerf");
             clock = 129.9; tick.Invoke(null, null); Assert((bool)Get(data, "isInvincible"), "still protected before deadline");
             clock = 130; tick.Invoke(null, null); Assert(!(bool)Get(data, "isInvincible"), "protection expires at shared deadline");
@@ -143,7 +143,7 @@ internal static class HostOptionsRegression
             tick.Invoke(null, null); clock = 130; tick.Invoke(null, null);
             Assert((bool)Get(data, "isInvincible") && (bool)Get(data, "isInvincibleMilk"), "existing milk protection remains after opening expires");
             Assert((float)Get(milk, "totalTime") == 90f && (float)Get(milk, "timeElapsed") == 10f, "native item protection timer is not overwritten");
-            addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false });
+            addStatus.Invoke(afflictions, new object[] { injury, .4f, false, false, false, false, false });
             Assert(ignoresInvincibility && Math.Abs(damage - .1f) < .00001f, "normal ascent 12 invincibility nerf resumes after opening window");
             list.Clear(); clock = 100; tick.Invoke(null, null); reset.Invoke(null, null);
             Assert(!(bool)Get(data, "isInvincible"), "return/reset removes only opening protection");
