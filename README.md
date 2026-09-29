@@ -13,7 +13,7 @@
 | 联机 | 所有参与者安装相同版本；房主确定等级和本局配置 |
 | 授权状态 | **公开源码；原作者的再许可授权尚未确认，未统一声明 MIT/GPL**，见 [授权说明](LICENSING.md) |
 
-[发布版本](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases) · [详细数值](docs/EFFECTS.md) · [构建说明](docs/BUILD.md) · [测试范围](docs/TESTING.md)
+[下载 v1.5.17](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.17) · [详细数值](docs/EFFECTS.md) · [构建说明](docs/BUILD.md) · [测试范围](docs/TESTING.md)
 
 ## 和原模组的关系
 
@@ -74,7 +74,7 @@
 ## 安装与选择难度
 
 1. 安装 PEAK 2.5.a 和 BepInEx 5，退出游戏。
-2. 下载 **1.5.17 安装包**（本地交付包，或发布页中对应 PEAK 2.5.a 的版本） 并解压到游戏插件目录以外。
+2. 下载 [v1.5.17 安装包](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.17) 并解压到游戏插件目录以外。
 3. 使用下列脚本，`GamePath` 替换成自己的 PEAK 游戏目录。第一条只预览，第二条先备份再安装。
 
 ```powershell
