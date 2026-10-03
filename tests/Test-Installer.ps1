@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Path (Split-Path $old -Parent),$core,(Split-Path $
 if (-not $BaselineDll) { $BaselineDll = Join-Path $GamePath 'BepInEx\plugins\PeakAscentsContinued\13dda.dll' }
 Copy-Item -LiteralPath $BaselineDll -Destination $old
 Copy-Item -LiteralPath (Join-Path $GamePath 'BepInEx\core\Mono.Cecil.dll') -Destination $core
-'2.5.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'2.6.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 "[Ascents]`nAscent 9 = true`nAscent 8 = true" | Set-Content -LiteralPath $config -Encoding UTF8
 $oldHash=(Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash
 $configHash=(Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash

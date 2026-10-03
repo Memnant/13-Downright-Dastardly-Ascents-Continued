@@ -1,6 +1,6 @@
 # 从源码构建
 
-本仓库运行时 `src/**/*.cs` 对应 1.5.19。开发环境以 **Windows x64、PowerShell、PEAK 2.5.a / Build 25585932、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。
+本仓库运行时 `src/**/*.cs` 对应 1.5.20。开发环境以 **Windows x64、PowerShell、PEAK 2.6.a / Build 25667990、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。
 
 ## 准备
 

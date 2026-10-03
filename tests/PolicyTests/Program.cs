@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using dda;
 
@@ -75,10 +75,11 @@ SwampBalanceSaveTests.Run(Check);
 FogStatusSaveTests.Run(Check);
 SwampFogSaveTests.Run(Check);
 Game25SaveTests.Run(Check);
+Game26SaveTests.Run(Check);
 object allocation = args.Length > 1 ? AllocationRegression.Run(args[1], Check) : null;
 var report = new { Status = "PASSED_POLICY", Assertions = checks, EngineExecuted = false, MultiplayerExecuted = false,
     AllocationBenchmark = allocation,
-    Scenarios = new[] { "levels and cumulative/forced effects", "legacy removed flags", "network encoding and malformed input", "peer version/config readiness", "RunId sidecar isolation", "1.5.0 migration and checkpoint schema 2", "lava clock, slow band, wraps, FPS, late join and host clock handoff simulation", "rule zero reunion and multi-scout selection", "weather grace pending/loading, shared deadline, expiry, run identity, resume and clock rollover", "chasing fog movement uses tier 18 without changing saved selections", "balance and tier-20 swamp save migrations and snow off intervals", "1.5.0-1.5.16 save round trips, separate fog damage tier 14 and movement tier 18 gates, version mismatch and downgrade rejection" } };
+    Scenarios = new[] { "levels and cumulative/forced effects", "legacy removed flags", "network encoding and malformed input", "peer version/config readiness", "RunId sidecar isolation", "1.5.0 migration and checkpoint schema 2", "lava clock, slow band, wraps, FPS, late join and host clock handoff simulation", "rule zero reunion and multi-scout selection", "weather grace pending/loading, shared deadline, expiry, run identity, resume and clock rollover", "chasing fog movement uses tier 18 without changing saved selections", "balance and tier-20 swamp save migrations and snow off intervals", "1.5.0-1.5.16 save round trips, separate fog damage tier 14 and movement tier 18 gates, version mismatch and downgrade rejection", "2.6 sidecar roundtrips, old native format rejection, no downgrade and same-version peers" } };
 string reportJson = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
 Console.WriteLine(reportJson);
 if (args.Length > 0) File.WriteAllText(args[0], reportJson);

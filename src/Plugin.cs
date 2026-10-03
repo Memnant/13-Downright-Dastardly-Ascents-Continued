@@ -13,8 +13,8 @@ namespace dda;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "13dastardlyascents";
-    public const string Version = "1.5.19";
-    public const string SupportedGame = "2.5.a";
+    public const string Version = "1.5.20";
+    public const string SupportedGame = "2.6.a";
     internal static ManualLogSource Log;
     internal static bool Ready;
     internal static readonly ConfigEntry<bool>[] ForcedLevels = new ConfigEntry<bool>[12];

@@ -40,6 +40,8 @@ public sealed class SavedRuleRecord
         // 2.5 keeps the native RunId/checkpoint format. Migrate known 2.4.c
         // sidecars in memory only; RunSaveStore still verifies the exact native
         // checkpoint hash before accepting them. No game-version downgrade.
+        // 2.6 uses native save version 4 and rejects version 3; do not extend
+        // this migration to 2.6 or relabel an old checkpoint as a current save.
         bool compatibleGame = !string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame ||
             (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19") && KnownPriorVersion(modVersion, 0));
         if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || !compatibleGame ||

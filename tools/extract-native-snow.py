@@ -31,9 +31,10 @@ def extract(game: Path, output: Path):
     audited = {
         '2.4.c': ('C067125B9833EF1F2881AB97FDCA574BE7C67F45C8ADD77B9E0A8AB82C4FE9F7', 137517, 342491, 592736),
         '2.5.a': ('F874FA50F6E2B15D5270BF4891C1A377C22584E6F38621CB17909FFEF99923B8', 123191, 312606, 546689),
+        '2.6.a': ('B9A363213352EA58496F2F8598FA267C565BAF876F8C524EB56266764F8C199B', 132899, 336149, 592619),
     }
     if version not in audited:
-        raise ValueError('This extractor supports audited PEAK 2.4.c and 2.5.a builds only.')
+        raise ValueError('This extractor supports audited PEAK 2.4.c, 2.5.a and 2.6.a builds only.')
     expected_hash, snow_id, transform_id, particle_id = audited[version]
     suffix = version.replace('.', '')
     data_root = game / 'PEAK_Data'
