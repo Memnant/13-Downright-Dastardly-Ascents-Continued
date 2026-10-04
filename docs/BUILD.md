@@ -1,6 +1,6 @@
 # 从源码构建
 
-本仓库运行时 `src/**/*.cs` 对应 1.5.20。开发环境以 **Windows x64、PowerShell、PEAK 2.6.a / Build 25667990、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。
+本仓库运行时 `src/**/*.cs` 对应 1.5.21。开发环境以 **Windows x64、PowerShell、PEAK 2.6.a / Build 25667990、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。运行时版本放宽不改变构建时的核查基线；视觉资源提取器仍限定已核查的版本与哈希。
 
 ## 准备
 
@@ -32,7 +32,7 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 .\tools\test.ps1 -GamePath 'D:\SteamLibrary\steamapps\common\PEAK'
 ```
 
-构建产物为 `artifacts/BepInEx/plugins/PeakAscentsContinued/13dda.dll`。`test.ps1` 执行构建、静态补丁目标/成员检查和纯逻辑测试，不进入实际地图。
+构建产物为 `artifacts/BepInEx/plugins/PeakAscentsContinued/13dda.dll`。`test.ps1` 执行构建、静态补丁目标/成员检查、纯逻辑测试和兼容性拒绝测试，不进入实际地图。后者仅改动项目内的测试副本，模拟缺失接口或原生格式变化，不修改真实游戏程序集。
 
 可选的隔离检查须先退出 PEAK：
 
@@ -51,11 +51,13 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 | `src/DifficultySnapshot.cs` | 等级、强制开关与配置编码 |
 | `src/RunCoordinator.cs` | 房主规则、开局与房间状态 |
 | `src/RunSaveStore.cs`、`src/SavedRuleRecord.cs` | RunId 侧存档和版本兼容 |
+| `src/GameVersionPolicy.cs`、`src/RuntimeCompatibility.cs` | 允许的版本范围与启动接口检查 |
 | `src/AirportSelector.cs` | 机场难度/免宝石面板 |
 | `src/EffectState.cs` | 参数保存和跨局还原 |
 | `src/Effects/` | 各项原效果适配及新增地区效果 |
 | `src/Effects/ChasingFogTint.cs` | 火山、雾沼追赶雾颜色与 150 米渐隐 |
 | `tests/PolicyTests/` | 不启动 Unity 的规则、保存和同步状态模拟 |
+| `tests/CompatibilityTests/` | 当前程序集及模拟不兼容副本的启动检查 |
 | `tests/SmokeHarness/` | 在实际 Unity/游戏程序集内执行合成组件检查 |
 
 ## 发布内容

@@ -21,6 +21,7 @@ public sealed class SavedRuleRecord
     [DataMember] public int checkpointSegment;
     [DataMember] public double checkpointTime;
     [DataMember] public double? tidePhase;
+    [DataMember(EmitDefaultValue = false)] public int? nativeSaveVersion;
 
     public string ToJson()
     {
@@ -40,15 +41,20 @@ public sealed class SavedRuleRecord
         // 2.5 keeps the native RunId/checkpoint format. Migrate known 2.4.c
         // sidecars in memory only; RunSaveStore still verifies the exact native
         // checkpoint hash before accepting them. No game-version downgrade.
-        // 2.6 uses native save version 4 and rejects version 3; do not extend
-        // this migration to 2.6 or relabel an old checkpoint as a current save.
-        bool compatibleGame = !string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame ||
-            (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19") && KnownPriorVersion(modVersion, 0));
+        // 2.6 uses format 4: never extend the 2.4/2.5 migration into 2.6.
+        // The relaxed reader separately permits same-format forward 2.6 patches.
+        bool relaxedReader = expectedMod == "1.5.21";
+        if (relaxedReader && !(nativeSaveVersion == GameVersionPolicy.NativeSaveVersion ||
+            (nativeSaveVersion == null && modVersion == "1.5.20" && gameVersion == "2.6.a"))) return false;
+        bool compatibleGame = relaxedReader ? GameVersionPolicy.CanReadSave(gameVersion, expectedGame) :
+            ((!string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame) ||
+            (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19") && KnownPriorVersion(modVersion, 0)));
         if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || !compatibleGame ||
             !DifficultySnapshot.TryDecode(rules, out snapshot)) return false;
         if (schema == 1) return modVersion == "1.5.0" &&
             (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16" || expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19");
         bool compatibleVersion = modVersion == expectedMod ||
+            (expectedMod == "1.5.21" && modVersion == "1.5.20" && gameVersion == "2.6.a") ||
             (expectedMod == "1.5.19" && KnownPriorVersion(modVersion, 1, 18)) ||
             (expectedMod == "1.5.18" && KnownPriorVersion(modVersion, 1, 17)) ||
             (expectedMod == "1.5.17" && KnownPriorVersion(modVersion, 1)) ||

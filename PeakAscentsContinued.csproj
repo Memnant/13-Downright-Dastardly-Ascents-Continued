@@ -3,7 +3,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>13dda</AssemblyName>
     <RootNamespace>dda</RootNamespace>
-    <Version>1.5.20</Version>
+    <Version>1.5.21</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -22,6 +22,7 @@
     </Reference>
     <Reference Include="$(GamePath)/BepInEx/core/BepInEx.dll"><Private>false</Private></Reference>
     <Reference Include="$(GamePath)/BepInEx/core/0Harmony.dll"><Private>false</Private></Reference>
+    <Reference Include="$(GamePath)/BepInEx/core/Mono.Cecil.dll"><Private>false</Private></Reference>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
     <Reference Include="$(GamePath)/PEAK_Data/Managed/Assembly-CSharp.dll" Publicize="true"><Private>false</Private></Reference>
   </ItemGroup>

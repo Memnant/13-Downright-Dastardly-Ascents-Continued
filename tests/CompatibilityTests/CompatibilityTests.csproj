@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>
+    <GamePath Condition="'$(GamePath)' == ''">D:\Steam\steamapps\common\PEAK</GamePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/GameVersionPolicy.cs" Link="GameVersionPolicy.cs" />
+    <Compile Include="../../src/RuntimeCompatibility.cs" Link="RuntimeCompatibility.cs" />
+    <Reference Include="$(GamePath)/BepInEx/core/Mono.Cecil.dll" />
+  </ItemGroup>
+</Project>

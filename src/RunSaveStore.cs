@@ -12,6 +12,7 @@ internal static class RunSaveStore
 {
     [DataContract] private sealed class NativeFile
     {
+        [DataMember] public int version = 0;
         [DataMember] public NativeRun run = null;
     }
     [DataContract] private sealed class NativeRun
@@ -33,6 +34,8 @@ internal static class RunSaveStore
         if (!RunCoordinator.InRun || RunCoordinator.ResumePrepared) return;
         byte[] nativeBytes = File.ReadAllBytes(Quicksave.SaveFile.FullName);
         var native = WireJson.Decode<NativeFile>(Encoding.UTF8.GetString(nativeBytes));
+        if (native?.version != GameVersionPolicy.NativeSaveVersion)
+            throw new InvalidDataException("Unsupported native checkpoint format; metadata not overwritten.");
         if (native?.run == null || !Guid.TryParse(native.run.runId, out Guid id) || id == Guid.Empty || id != TideSync.RunId)
             throw new InvalidDataException("Native checkpoint does not match the current run.");
         double? phase = null;
@@ -42,11 +45,12 @@ internal static class RunSaveStore
             phase = value;
         }
         var record = new SavedRuleRecord {
-            schema = SavedRuleRecord.CurrentSchema, runId = id.ToString("N"), gameVersion = Plugin.SupportedGame,
+            schema = SavedRuleRecord.CurrentSchema, runId = id.ToString("N"), gameVersion = Plugin.ActualGameVersion,
             modVersion = Plugin.Version, rules = RunCoordinator.Active.Encode(), nativeSaveHash = Hash(nativeBytes),
-            checkpointSegment = native.run.biomeReached, checkpointTime = native.run.runTimer, tidePhase = phase
+            checkpointSegment = native.run.biomeReached, checkpointTime = native.run.runTimer, tidePhase = phase,
+            nativeSaveVersion = native.version
         };
-        if (!record.TryRead(id, Plugin.SupportedGame, Plugin.Version, out _)) throw new InvalidDataException("Invalid checkpoint metadata.");
+        if (!record.TryRead(id, Plugin.ActualGameVersion, Plugin.Version, out _)) throw new InvalidDataException("Invalid checkpoint metadata.");
         string path = Location(id);
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         string temporary = path + ".tmp";
@@ -68,11 +72,14 @@ internal static class RunSaveStore
             if (File.Exists(path))
             {
                 var record = SavedRuleRecord.FromJson(File.ReadAllText(path));
-                if (record == null || !record.TryRead(id, Plugin.SupportedGame, Plugin.Version, out snapshot))
+                if (record == null || !record.TryRead(id, Plugin.ActualGameVersion, Plugin.Version, out snapshot))
                     throw new InvalidDataException("Incompatible or damaged Continued run metadata.");
                 if (snapshot.IsExtended && officialAscent != 8) throw new InvalidDataException("Extended metadata requires official Ascent 8 as its base.");
+                byte[] nativeBytes = File.ReadAllBytes(Quicksave.SaveFile.FullName);
+                if (WireJson.Decode<NativeFile>(Encoding.UTF8.GetString(nativeBytes))?.version != GameVersionPolicy.NativeSaveVersion)
+                    throw new InvalidDataException("Unsupported native checkpoint format; save was preserved.");
                 if (record.schema == SavedRuleRecord.CurrentSchema &&
-                    !string.Equals(record.nativeSaveHash, Hash(File.ReadAllBytes(Quicksave.SaveFile.FullName)), StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(record.nativeSaveHash, Hash(nativeBytes), StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("Continued metadata belongs to a different checkpoint; native save was preserved.");
                 phase = record.tidePhase ?? 0;
                 if (record.schema == 1) Plugin.Log.LogInfo("Migrated 1.5.0 rules in memory; missing lava phase starts at zero for everyone. Original metadata remains until the next checkpoint.");

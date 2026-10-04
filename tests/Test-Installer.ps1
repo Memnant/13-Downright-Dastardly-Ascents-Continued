@@ -25,6 +25,17 @@ $candidate=Join-Path $projectRoot 'artifacts\BepInEx\plugins\PeakAscentsContinue
 $target=Join-Path $testGame 'BepInEx\plugins\PeakAscentsContinued\13dda.dll'
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
 if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Preview mutated plugins.'}
+'2.6.b' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+& (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
+if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Patch preview mutated plugins.'}
+foreach ($unsupported in @('2.7.a','2.60.a','2.6.A','2.6.1')) {
+    $unsupported | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+    $versionRejected=$false
+    try { & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply }
+    catch { if ($_.Exception.Message -notlike '*2.6*') { throw }; $versionRejected=$true }
+    if(-not $versionRejected -or -not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Unsupported version was not rejected before mutation.'}
+}
+'2.6.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply
 if(Test-Path -LiteralPath $old){throw 'Old renamed DLL would still load.'}
 if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash){throw 'Candidate differs after install.'}
@@ -55,6 +66,6 @@ if((Get-FileHash -LiteralPath $native).Hash -ne $latestNative -or (Get-FileHash 
 $rejected=$false
 try { $null=Safe-GamePath $testGame '..\outside.dll' } catch { $rejected=$true }
 if(-not $rejected){throw 'Traversal not rejected.'}
-[PSCustomObject]@{Status='PASSED_INSTALL_RESTORE_FIXTURE';PluginSHA256=(Get-FileHash -LiteralPath $candidate).Hash;Fixture=$fixture;RealGameModified=$false;RenamedDllFound=$true;PreviewReadOnly=$true;HashesRestored=$true;NewConfigEditPreserved=$true;NativeAndSidecarPairRestored=$true;DefaultRollbackPreservesProgress=$true;PathTraversalRejected=$true} |
+[PSCustomObject]@{Status='PASSED_INSTALL_RESTORE_FIXTURE';PluginSHA256=(Get-FileHash -LiteralPath $candidate).Hash;Fixture=$fixture;RealGameModified=$false;LetterPatchPreviewAccepted=$true;OtherVersionsRejectedBeforeMutation=$true;RenamedDllFound=$true;PreviewReadOnly=$true;HashesRestored=$true;NewConfigEditPreserved=$true;NativeAndSidecarPairRestored=$true;DefaultRollbackPreservesProgress=$true;PathTraversalRejected=$true} |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $projectRoot 'artifacts\installer-tests.json') -Encoding UTF8
 Write-Output 'Installer/restore fixture passed; the actual game was not modified.'

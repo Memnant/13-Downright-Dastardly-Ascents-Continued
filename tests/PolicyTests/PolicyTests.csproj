@@ -4,6 +4,7 @@
     <Compile Include="../../src/DifficultySnapshot.cs" Link="DifficultySnapshot.cs" />
     <Compile Include="../../src/ReadinessPolicy.cs" Link="ReadinessPolicy.cs" />
     <Compile Include="../../src/SavedRuleRecord.cs" Link="SavedRuleRecord.cs" />
+    <Compile Include="../../src/GameVersionPolicy.cs" Link="GameVersionPolicy.cs" />
     <Compile Include="../../src/VolcanoTide.cs" Link="VolcanoTide.cs" />
     <Compile Include="../../src/EnvironmentRecords.cs" Link="EnvironmentRecords.cs" />
     <Compile Include="../../src/RuleZeroPolicy.cs" Link="RuleZeroPolicy.cs" />

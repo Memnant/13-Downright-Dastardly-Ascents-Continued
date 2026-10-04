@@ -6,14 +6,16 @@
 
 | 项目 | 当前版本 |
 |---|---|
-| 插件 | **1.5.20（2.6 适配候选）**，DLL 文件名 `13dda.dll` |
-| 支持游戏 | **PEAK 2.6.a / Steam Build 25667990** |
+| 插件 | **1.5.21（放宽版本限制实验版）**，DLL 文件名 `13dda.dll` |
+| 允许尝试加载 | **PEAK 2.6 系列字母补丁**；已检查基线为 2.6.a / Steam Build 25667990 |
 | 加载器 | BepInEx 5，实际检查环境为 5.4.23.3 |
 | 天阶 | 官方 7、8 保持；独立选择续作 9–20，逐阶累加 |
 | 联机 | 所有参与者安装相同版本；房主确定等级和本局配置 |
 | 授权状态 | **公开源码；原作者的再许可授权尚未确认，未统一声明 MIT/GPL**，见 [授权说明](LICENSING.md) |
 
-[下载 1.5.20 适配候选版](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.20) · [详细数值](docs/EFFECTS.md) · [构建说明](docs/BUILD.md) · [测试范围](docs/TESTING.md)
+[下载 1.5.21 实验版](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.21) · [兼容范围与风险](docs/COMPATIBILITY.md) · [详细数值](docs/EFFECTS.md) · [构建说明](docs/BUILD.md) · [测试范围](docs/TESTING.md)
+
+> **官方更新后仍可能出现 bug。** 本版允许 `2.6.a → 2.6.b` 等同系列小更新在接口检查通过后尝试加载；不放行 `2.7`、`3.x`。未来补丁尚未实机验证，可能出现天气/伤害或睡眠异常、联机不同步、营火续玩失败等问题。**加载成功不代表完全兼容**；升级前备份原生存档和模组侧存档，全队使用相同游戏和模组版本。仅使用 2.6.a 且希望保留精确版本限制的玩家可继续使用 [1.5.20](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.20)。
 
 ## 和原模组的关系
 
@@ -73,8 +75,8 @@
 
 ## 安装与选择难度
 
-1. 安装 PEAK 2.6.a 和 BepInEx 5，退出游戏。
-2. 下载 [1.5.20 安装包](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/download/v1.5.20/13-Downright-Dastardly-Ascents-Continued-1.5.20-PEAK-2.6.a.zip)，并解压到游戏插件目录以外。
+1. 安装 PEAK 2.6 系列和 BepInEx 5，退出游戏；除已检查的 2.6.a 外，其他字母补丁均按实验兼容处理。
+2. 下载 [1.5.21 安装包](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/download/v1.5.21/13-Downright-Dastardly-Ascents-Continued-1.5.21-PEAK-2.6.x.zip)，并解压到游戏插件目录以外。
 3. 使用下列脚本，`GamePath` 替换成自己的 PEAK 游戏目录。第一条只预览，第二条先备份再安装。
 
 ```powershell
@@ -86,9 +88,9 @@
 
 插件 GUID 保持为 `13dastardlyascents`，因此原模组与 Continued **只能加载一份**。安装器识别同 GUID 的旧 DLL，即使旧文件改过名字也会备份处理。手动安装时，把旧 DLL 移到 `BepInEx/plugins` 之外，再将新版放入 `BepInEx/plugins/PeakAscentsContinued/13dda.dll`；不要在 plugins 内放备份。
 
-多人扩展挑战要求全员 **1.5.20**。房主同步等级和开关，版本或规则未确认时阻止开局。使用整合包/模组管理器时，须安装到实际启用的配置档案目录。
+多人扩展挑战要求全员 **1.5.21，并使用相同游戏版本**。房主同步等级和开关，模组版本或规则未确认时阻止开局。使用整合包/模组管理器时，须安装到实际启用的配置档案目录。
 
-**1.5.20 对应 PEAK 2.6.a**；2.5.a 玩家继续使用 [1.5.19](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.19)，2.4.c 玩家使用 1.5.16。本次保留 1.5.18/19 的规则接收、摔伤睡眠与天气阶段同步修复，天阶数值、天气间隔和强度不变。详见 [2.6 适配核查](docs/GAME-2.6-AUDIT.md)；此前联机修复见 [2.5 排查记录](docs/MULTIPLAYER-2.5-AUDIT.md)。
+**1.5.21 放宽至 2.6 系列字母补丁**；2.5.a 玩家继续使用 [1.5.19](https://github.com/Memnant/13-Downright-Dastardly-Ascents-Continued/releases/tag/v1.5.19)，2.4.c 玩家使用 1.5.16。本次保留规则接收、摔伤睡眠与天气阶段同步修复，天阶数值、天气间隔和强度不变。启动时检查关键接口与原生存档格式，发现结构不匹配则停用模组。详见 [兼容说明](docs/COMPATIBILITY.md)、[2.6 适配核查](docs/GAME-2.6-AUDIT.md) 和 [2.5 联机排查](docs/MULTIPLAYER-2.5-AUDIT.md)。
 
 ## 配置与存档
 
@@ -96,7 +98,7 @@
 - `[Ascents]` 中 `Ascent 9` 至 `Ascent 20` 是**独立强制开启单阶**的开关，默认关闭；正常续作模式会自动累加。仅强制 20 不等于选择完整 20 阶。
 - 保留 `Nerfed Revives`、`Curse Punishment for Ascent 10` 等仍适用开关；忽略旧 `Ascent 8` 和旧复活限制开关。
 - 原生营火存档旁的模组规则保存在 `BepInEx/config/13dda-continued/runs/`，按 RunId 与检查点关联，包含本局等级、配置和岩浆相位。
-- **PEAK 2.6.a 将原生存档格式从 3 升为 4，原版拒绝旧格式营火档。** 1.5.20 不强行迁移 2.4/2.5 的进行中存档，也不改写旧侧存档；新局保存后按 2.6.a / 1.5.20 记录恢复。配置中的强制开关和房主选项继续保留。没有模组记录的有效 2.6 官方存档按官方模式处理。
+- **PEAK 2.6.a 将原生存档格式从 3 升为 4，原版拒绝旧格式营火档。** 1.5.21 继续只接受原生格式 4，不强行迁移 2.4/2.5 的进行中存档。可读取合法的 2.6.a / 1.5.20 侧存档，以及同系列同格式的向前补丁更新记录；仍核对 RunId 与检查点哈希。下次保存才记录实际游戏版本、模组版本和原生格式，不支持游戏或模组降级读取新记录。配置和房主选项保留；没有模组记录的有效官方存档按官方模式处理。
 - 第三方自由存档格式尚不保证兼容。不要只恢复原生存档或只恢复侧存档，造成不匹配。
 
 ### 回退
@@ -112,9 +114,9 @@
 
 ## 源码、构建与验证
 
-运行时 C# 源码对应 1.5.20 / PEAK 2.6.a 适配候选版。仓库不提交游戏程序集、原 DLL、私人配置、存档、机器日志、安装备份或独立的原版雪暴资源包。构建时从自己安装的 PEAK 2.6.a 提取原版视觉资源；发布 DLL 内已有对应嵌入资源，玩家安装无需 Python。详见 [构建步骤](docs/BUILD.md)。
+运行时 C# 源码对应 1.5.21，以 PEAK 2.6.a 构建。仓库不提交游戏程序集、原 DLL、私人配置、存档、机器日志、安装备份或独立的原版雪暴资源包。构建时从自己安装的 PEAK 2.6.a 提取原版视觉资源；资源提取器仍保留版本与哈希限制。发布 DLL 内已有对应嵌入资源，玩家安装无需 Python。详见 [构建步骤](docs/BUILD.md)。
 
-本版通过编译、103 个补丁声明解析、98 个不同目标隔离注册、39,794 项累计逻辑断言，以及 30 项队员规则、35 项原生天气同步、8 项原生存档版本/字段检查和既有原生组件参数/恢复检查。断言数量主要来自规则组合矩阵，**不等于游玩次数**。
+本版新增版本范围、接口变化拒绝和存档补丁升级检查；具体执行结果见 [测试说明](docs/TESTING.md)。断言数量主要来自规则组合矩阵，**不等于游玩次数**，模拟 `2.6.b` 也不代表测试过真正的未来游戏版本。
 
 **尚未完成独立实机验收的项目**包括：150 米追赶雾的实际远处观感、全部营火续玩组合、双客户端晚加入/重连/房主迁移、整合包动态兼容性与整机性能。发布为候选版，不把编译或隔离加载通过当作上述行为已验证。证据范围见 [测试说明](docs/TESTING.md)。
 

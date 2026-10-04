@@ -7,10 +7,12 @@ if(-not $DllPath) {
     $DllPath=Join-Path $projectRoot 'BepInEx\plugins\PeakAscentsContinued\13dda.dll'
     if(-not(Test-Path -LiteralPath $DllPath)) { $DllPath=Join-Path $projectRoot 'artifacts\BepInEx\plugins\PeakAscentsContinued\13dda.dll' }
 }
-if((Get-Content -LiteralPath (Join-Path $GamePath 'version.txt') -TotalCount 1).Trim() -ne '2.6.a') {throw 'This candidate requires PEAK 2.6.a.'}
+$gameVersion=(Get-Content -LiteralPath (Join-Path $GamePath 'version.txt') -TotalCount 1).Trim()
+if($gameVersion -cnotmatch '^2\.6\.[a-z]+$') {throw 'This experimental build allows PEAK 2.6 letter patches only.'}
+if($gameVersion -ne '2.6.a') {Write-Warning "PEAK $gameVersion is unverified. Runtime interface checks must pass; gameplay, networking and save bugs are still possible."}
 Add-Type -LiteralPath (Join-Path $GamePath 'BepInEx\core\Mono.Cecil.dll')
 $sourceIds=@(Plugin-Ids $DllPath)
-if($sourceIds.Count -ne 1 -or $sourceIds[0].Guid -ne '13dastardlyascents' -or $sourceIds[0].Version -ne '1.5.20') {throw 'Unexpected source plugin identity/version.'}
+if($sourceIds.Count -ne 1 -or $sourceIds[0].Guid -ne '13dastardlyascents' -or $sourceIds[0].Version -ne '1.5.21') {throw 'Unexpected source plugin identity/version.'}
 $targetRelative='BepInEx\plugins\PeakAscentsContinued\13dda.dll'
 $target=Safe-GamePath $GamePath $targetRelative
 $configRelative='BepInEx\config\13dastardlyascents.cfg'
@@ -66,5 +68,5 @@ $installed=@(Find-InstalledMod $GamePath)
 if($installed.Count -ne 1 -or $installed[0] -ne $target){throw 'Unexpected duplicate plugin after installation; see backup manifest.'}
 $manifest.Completed=$true
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-Write-Output "Installed Continued 1.5.20. Verified backup (including saved-run metadata): $backup"
+Write-Output "Installed Continued 1.5.21. Verified backup (including saved-run metadata): $backup"
 Write-Output "Restore with tools/restore.ps1 -BackupDirectory `"$backup`" -Apply"
