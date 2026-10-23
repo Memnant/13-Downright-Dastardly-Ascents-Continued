@@ -224,7 +224,7 @@ internal static class uberSplode
 		List<Character> list = new List<Character>();
 		for (int i = 0; i < array.Length; i++)
 		{
-			Character componentInParent = array[i].GetComponentInParent<Character>();
+			CharacterRagdoll.TryGetCharacterFromCollider(array[i], out Character componentInParent);
 			if (componentInParent != null && !list.Contains(componentInParent))
 			{
 				float num = Vector3.Distance(__instance.transform.position, componentInParent.Center);

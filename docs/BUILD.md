@@ -1,6 +1,6 @@
 # 从源码构建
 
-本仓库运行时 `src/**/*.cs` 对应 1.5.21。开发环境以 **Windows x64、PowerShell、PEAK 2.6.a / Build 25667990、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。运行时版本放宽不改变构建时的核查基线；视觉资源提取器仍限定已核查的版本与哈希。
+本仓库运行时 `src/**/*.cs` 对应 1.5.22。开发环境以 **Windows x64、PowerShell、PEAK 3.0.0 / Build 26134529、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。运行时版本放宽不改变构建时的核查基线；视觉资源提取器仍限定已核查的版本与哈希。
 
 ## 准备
 
@@ -21,7 +21,9 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 
 提取器核查版本及主程序集哈希，输出 `src/Resources/NativeAlpineSnow.bundle` 和本地来源报告；不会改写游戏文件。该 bundle 被 Git 忽略，构建时嵌入 DLL。玩家直接使用 Release DLL 时无需 Python。
 
-2.5 将资源合并进 `data.unity3d`；提取器只解压所需资源对应的块，不把整个游戏包展开到内存或磁盘。此步骤只在构建时执行。
+3.0 将地图移到 `PEAK_Data/StreamingAssets/maps/*.assetbundle`。提取器从已核查的 `levels0-31.assetbundle` 读取原版雪暴与追赶雾纹理，通过可寻址流和 8 MiB 解压块缓存读取所需部分，不把整个地图包展开到内存或磁盘。提取后的 9 个原版视觉对象与上一版字段一致；构建时重新定位资源，游戏运行时仍使用 DLL 内的精简资源包。
+
+该 Steam 构建的 `version.txt` 首行实际为 `3.0.0--logFile`。提取器和插件仅将这一已核查的完整字符串识别为 `3.0.0`，不改写游戏文件，也不接受任意附加后缀。
 
 ## 构建和检查
 

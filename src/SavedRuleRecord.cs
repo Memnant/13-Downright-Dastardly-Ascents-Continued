@@ -43,10 +43,13 @@ public sealed class SavedRuleRecord
         // checkpoint hash before accepting them. No game-version downgrade.
         // 2.6 uses format 4: never extend the 2.4/2.5 migration into 2.6.
         // The relaxed reader separately permits same-format forward 2.6 patches.
+        bool currentReader = expectedMod == "1.5.22";
+        if (currentReader && (nativeSaveVersion != GameVersionPolicy.NativeSaveVersion ||
+            modVersion != expectedMod || !GameVersionPolicy.CanReadSave(gameVersion, expectedGame))) return false;
         bool relaxedReader = expectedMod == "1.5.21";
         if (relaxedReader && !(nativeSaveVersion == GameVersionPolicy.NativeSaveVersion ||
             (nativeSaveVersion == null && modVersion == "1.5.20" && gameVersion == "2.6.a"))) return false;
-        bool compatibleGame = relaxedReader ? GameVersionPolicy.CanReadSave(gameVersion, expectedGame) :
+        bool compatibleGame = currentReader ? true : relaxedReader ? CanReadLegacy26(gameVersion, expectedGame) :
             ((!string.IsNullOrEmpty(gameVersion) && gameVersion == expectedGame) ||
             (gameVersion == "2.4.c" && expectedGame == "2.5.a" && (expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19") && KnownPriorVersion(modVersion, 0)));
         if (expectedRun == Guid.Empty || runId != expectedRun.ToString("N") || !compatibleGame ||
@@ -77,6 +80,19 @@ public sealed class SavedRuleRecord
             checkpointSegment < 0 || checkpointSegment > 6 || !WireJson.Finite(checkpointTime) || checkpointTime < 0) return false;
         return (!snapshot.Enabled(14) || tidePhase.HasValue) && (!tidePhase.HasValue || VolcanoTide.ValidPhase(tidePhase.Value));
     }
+    // Historical sidecar validation remains frozen to its original version family.
+    private static bool CanReadLegacy26(string saved, string current)
+    {
+        bool Valid(string value)
+        {
+            if (value == null || !value.StartsWith("2.6.", StringComparison.Ordinal) || value.Length < 5) return false;
+            for (int i = 4; i < value.Length; i++) if (value[i] < 'a' || value[i] > 'z') return false;
+            return true;
+        }
+        return Valid(saved) && Valid(current) && (saved.Length < current.Length ||
+            (saved.Length == current.Length && string.CompareOrdinal(saved, current) <= 0));
+    }
+
     private static bool KnownPriorVersion(string value, int minimum, int maximum = 16)
     {
         return System.Version.TryParse(value, out var version) && version.ToString() == value &&

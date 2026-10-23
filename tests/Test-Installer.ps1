@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Path (Split-Path $old -Parent),$core,(Split-Path $
 if (-not $BaselineDll) { $BaselineDll = Join-Path $GamePath 'BepInEx\plugins\PeakAscentsContinued\13dda.dll' }
 Copy-Item -LiteralPath $BaselineDll -Destination $old
 Copy-Item -LiteralPath (Join-Path $GamePath 'BepInEx\core\Mono.Cecil.dll') -Destination $core
-'2.6.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'3.0.0--logFile' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 "[Ascents]`nAscent 9 = true`nAscent 8 = true" | Set-Content -LiteralPath $config -Encoding UTF8
 $oldHash=(Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash
 $configHash=(Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash
@@ -25,17 +25,17 @@ $candidate=Join-Path $projectRoot 'artifacts\BepInEx\plugins\PeakAscentsContinue
 $target=Join-Path $testGame 'BepInEx\plugins\PeakAscentsContinued\13dda.dll'
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
 if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Preview mutated plugins.'}
-'2.6.b' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'3.0.1' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
 if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Patch preview mutated plugins.'}
-foreach ($unsupported in @('2.7.a','2.60.a','2.6.A','2.6.1')) {
+foreach ($unsupported in @('2.6.a','3.1.0','3.00.0','3.0.a','3.0.01','3.0.2147483648','3.0.1--logFile')) {
     $unsupported | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
     $versionRejected=$false
     try { & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply }
-    catch { if ($_.Exception.Message -notlike '*2.6*') { throw }; $versionRejected=$true }
+    catch { if ($_.Exception.Message -notlike '*3.0*') { throw }; $versionRejected=$true }
     if(-not $versionRejected -or -not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Unsupported version was not rejected before mutation.'}
 }
-'2.6.a' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'3.0.0--logFile' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply
 if(Test-Path -LiteralPath $old){throw 'Old renamed DLL would still load.'}
 if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash){throw 'Candidate differs after install.'}
@@ -66,6 +66,6 @@ if((Get-FileHash -LiteralPath $native).Hash -ne $latestNative -or (Get-FileHash 
 $rejected=$false
 try { $null=Safe-GamePath $testGame '..\outside.dll' } catch { $rejected=$true }
 if(-not $rejected){throw 'Traversal not rejected.'}
-[PSCustomObject]@{Status='PASSED_INSTALL_RESTORE_FIXTURE';PluginSHA256=(Get-FileHash -LiteralPath $candidate).Hash;Fixture=$fixture;RealGameModified=$false;LetterPatchPreviewAccepted=$true;OtherVersionsRejectedBeforeMutation=$true;RenamedDllFound=$true;PreviewReadOnly=$true;HashesRestored=$true;NewConfigEditPreserved=$true;NativeAndSidecarPairRestored=$true;DefaultRollbackPreservesProgress=$true;PathTraversalRejected=$true} |
+[PSCustomObject]@{Status='PASSED_INSTALL_RESTORE_FIXTURE';PluginSHA256=(Get-FileHash -LiteralPath $candidate).Hash;Fixture=$fixture;RealGameModified=$false;NumericPatchPreviewAccepted=$true;OtherVersionsRejectedBeforeMutation=$true;RenamedDllFound=$true;PreviewReadOnly=$true;HashesRestored=$true;NewConfigEditPreserved=$true;NativeAndSidecarPairRestored=$true;DefaultRollbackPreservesProgress=$true;PathTraversalRejected=$true} |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $projectRoot 'artifacts\installer-tests.json') -Encoding UTF8
 Write-Output 'Installer/restore fixture passed; the actual game was not modified.'

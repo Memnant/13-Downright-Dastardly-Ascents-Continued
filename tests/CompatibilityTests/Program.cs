@@ -25,12 +25,13 @@ static void Run(string[] args)
     Directory.CreateDirectory(fixture);
     var cases = new List<string>();
     var watch = Stopwatch.StartNew();
-    var baseline = RuntimeCompatibility.Check("2.6.a", plugin, managed, core);
+    var baseline = RuntimeCompatibility.Check("3.0.0", plugin, managed, core);
     watch.Stop();
     Require(!baseline.UnverifiedBuild && baseline.PatchDeclarations == 103 && baseline.CheckedMembers > 100, "verified baseline passes full preflight");
-    Require(RuntimeCompatibility.Check("2.6.b", plugin, managed, core).UnverifiedBuild, "future suffix is allowed but unverified");
-    ExpectFailure(() => RuntimeCompatibility.Check("2.7.a", "missing", "missing", "missing"), "allows PEAK 2.6", "other series stopped before inspecting files");
-    ExpectFailure(() => RuntimeCompatibility.Check("2.60.a", "missing", "missing", "missing"), "allows PEAK 2.6", "similar prefix is rejected");
+    Require(!RuntimeCompatibility.Check("3.0.0--logFile", plugin, managed, core).UnverifiedBuild, "audited packaging suffix is recognized");
+    Require(RuntimeCompatibility.Check("3.0.1", plugin, managed, core).UnverifiedBuild, "future numeric patch is allowed but unverified");
+    ExpectFailure(() => RuntimeCompatibility.Check("3.1.0", "missing", "missing", "missing"), "allows PEAK 3.0", "other series stopped before inspecting files");
+    ExpectFailure(() => RuntimeCompatibility.Check("3.00.0", "missing", "missing", "missing"), "allows PEAK 3.0", "similar prefix is rejected");
     Mutation("missing-weather-target", module => {
         module.GetType("WindChillZone").Methods.Single(m => m.Name == "HandleTime").Name = "ChangedHandleTime";
     }, "HandleTime");
@@ -53,7 +54,7 @@ static void Run(string[] args)
         module.GetType("WindChillZone").Methods.Add(method);
     }, "HandleTime");
     string newBuild = CopyMutation("changed-build-id", module => module.Mvid = Guid.NewGuid());
-    Require(RuntimeCompatibility.Check("2.6.a", plugin, managed, core, newBuild).UnverifiedBuild, "same version but new assembly build is unverified");
+    Require(RuntimeCompatibility.Check("3.0.0", plugin, managed, core, newBuild).UnverifiedBuild, "same version but new assembly build is unverified");
 
     var report = new { Status = "PASSED_COMPATIBILITY_GUARD", Assertions = cases.Count, baseline.PatchDeclarations,
         baseline.CheckedMembers, BaselineMilliseconds = watch.Elapsed.TotalMilliseconds, Cases = cases,
@@ -88,6 +89,6 @@ static void Run(string[] args)
     void Mutation(string name, Action<ModuleDefinition> change, string reason)
     {
         string path = CopyMutation(name, change);
-        ExpectFailure(() => RuntimeCompatibility.Check("2.6.b", plugin, managed, core, path), reason, name);
+        ExpectFailure(() => RuntimeCompatibility.Check("3.0.1", plugin, managed, core, path), reason, name);
     }
 }

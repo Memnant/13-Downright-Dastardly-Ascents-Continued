@@ -37,14 +37,14 @@ internal static class PatchSaveRegression
             Patch(AccessTools.PropertyGetter(mod.GetType("dda.TideSync"), "RunId"), nameof(RunId));
             Patch(AccessTools.PropertyGetter(typeof(PhotonNetwork), "InRoom"), nameof(InRoom));
             fields[1].SetValue(null, Activator.CreateInstance(mod.GetType("dda.DifficultySnapshot"), 9, 0, true, true));
-            fields[2].SetValue(null, true); fields[3].SetValue(null, false); fields[5].SetValue(null, "2.6.a");
+            fields[2].SetValue(null, true); fields[3].SetValue(null, false); fields[5].SetValue(null, "3.0.0");
             File.WriteAllText(nativeFile.FullName, native);
             save.Invoke(null, null);
             string original = File.ReadAllText(sidecar);
             object record = Read();
-            Assert((string)Get(record, "gameVersion") == "2.6.a" && (int)Get(record, "nativeSaveVersion") == 4, "writer records actual game and native format");
-            Assert((string)Get(record, "modVersion") == "1.5.21", "writer records this plugin version");
-            fields[5].SetValue(null, "2.6.b");
+            Assert((string)Get(record, "gameVersion") == "3.0.0" && (int)Get(record, "nativeSaveVersion") == 4, "writer records actual game and native format");
+            Assert((string)Get(record, "modVersion") == "1.5.22", "writer records this plugin version");
+            fields[5].SetValue(null, "3.0.1");
             Assert(Resume(), "same-format forward patch resumes rules");
             Assert(File.ReadAllText(sidecar) == original && File.ReadAllText(nativeFile.FullName) == native, "resume reads without rewriting native or sidecar");
             Assert((int)mod.GetType("dda.DifficultySnapshot").GetProperty("Ascent").GetValue(fields[1].GetValue(null)) == 9, "resumed rules keep chosen tier");
@@ -52,10 +52,10 @@ internal static class PatchSaveRegression
             save.Invoke(null, null);
             string newer = File.ReadAllText(sidecar);
             record = Read();
-            Assert((string)Get(record, "gameVersion") == "2.6.b", "next save records actual new patch instead of hard-coded baseline");
-            fields[5].SetValue(null, "2.6.a");
+            Assert((string)Get(record, "gameVersion") == "3.0.1", "next save records actual new patch instead of hard-coded baseline");
+            fields[5].SetValue(null, "3.0.0");
             Assert(!Resume() && File.ReadAllText(sidecar) == newer, "game downgrade is rejected without rewriting sidecar");
-            fields[5].SetValue(null, "2.6.b");
+            fields[5].SetValue(null, "3.0.1");
             File.WriteAllText(nativeFile.FullName, native.Replace("\"version\":4", "\"version\":5"));
             bool rejected = false;
             try { save.Invoke(null, null); }
@@ -70,7 +70,7 @@ internal static class PatchSaveRegression
             recordType.GetField("gameVersion").SetValue(record, "2.6.a");
             recordType.GetField("nativeSaveVersion").SetValue(record, null);
             File.WriteAllText(sidecar, (string)recordType.GetMethod("ToJson").Invoke(record, null));
-            Assert(Resume(), "known 1.5.20 format-4 checkpoint remains readable on patch upgrade");
+            Assert(!Resume(), "old 2.6 sidecar cannot migrate into the new map pool automatically");
             Assert(File.ReadAllText(nativeFile.FullName) == native, "native fixture unchanged after legacy sidecar read");
         }
         finally

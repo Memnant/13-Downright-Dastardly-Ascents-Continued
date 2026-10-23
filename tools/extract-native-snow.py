@@ -18,6 +18,8 @@ import UnityPy
 from UnityPy.enums import ArchiveFlags, ClassIDType
 from UnityPy.files.BundleFile import BundleFile
 from UnityPy.files.ObjectReader import ObjectReader
+from UnityPy.files import SerializedFile
+from UnityPy.streams import EndianBinaryReader
 from UnityPy.helpers.Tpk import get_typetree_node
 from unity_archive import UnityArchive
 
@@ -28,20 +30,28 @@ def sha(data):
 
 def extract(game: Path, output: Path):
     version = (game / 'version.txt').read_text(encoding='utf-8-sig').splitlines()[0].strip()
+    # This exact packaging suffix is present in the audited Steam 3.0.0 build.
+    if version == '3.0.0--logFile': version = '3.0.0'
     audited = {
         '2.4.c': ('C067125B9833EF1F2881AB97FDCA574BE7C67F45C8ADD77B9E0A8AB82C4FE9F7', 137517, 342491, 592736),
         '2.5.a': ('F874FA50F6E2B15D5270BF4891C1A377C22584E6F38621CB17909FFEF99923B8', 123191, 312606, 546689),
         '2.6.a': ('B9A363213352EA58496F2F8598FA267C565BAF876F8C524EB56266764F8C199B', 132899, 336149, 592619),
+        '3.0.0': ('E9A8585ABFA566AFA7A3EF3E3699BC27369039EEEFCDB3CAA38D624D56F59E5C', 108629, 276552, 478314),
     }
     if version not in audited:
-        raise ValueError('This extractor supports audited PEAK 2.4.c, 2.5.a and 2.6.a builds only.')
+        raise ValueError('This extractor supports audited PEAK 2.4.c, 2.5.a, 2.6.a and 3.0.0 builds only.')
     expected_hash, snow_id, transform_id, particle_id = audited[version]
     suffix = version.replace('.', '')
     data_root = game / 'PEAK_Data'
     asm_hash = sha((data_root / 'Managed/Assembly-CSharp.dll').read_bytes())
     if asm_hash != expected_hash:
         raise ValueError('Game assembly does not match the audited build.')
-    archive_path = data_root / 'data.unity3d'
+    map_bundle = version == '3.0.0'
+    scene_name = 'BuildPlayer-Level_22' if map_bundle else 'level7'
+    shared_name = scene_name + '.sharedAssets'
+    fog_key = (shared_name, 712) if map_bundle else ('sharedassets0.assets', 20)
+    material_key = (shared_name, 500) if map_bundle else ('sharedassets4.assets', 171)
+    archive_path = data_root / ('StreamingAssets/maps/levels0-31.assetbundle' if map_bundle else 'data.unity3d')
     archive = UnityArchive(archive_path) if archive_path.is_file() else None
     files = {}
     trees = {}
@@ -53,8 +63,11 @@ def extract(game: Path, output: Path):
     def file(name):
         if name not in files:
             source = data_root / name
-            env = UnityPy.load(str(source) if source.is_file() else archive.read(name))
-            files[name] = next(iter(env.files.values()))
+            if map_bundle and not source.is_file():
+                files[name] = SerializedFile(EndianBinaryReader(archive.open(name)), name=name)
+            else:
+                env = UnityPy.load(str(source) if source.is_file() else archive.read(name))
+                files[name] = next(iter(env.files.values()))
             files[name].name = name
         return files[name]
 
@@ -85,12 +98,13 @@ def extract(game: Path, output: Path):
             raise ValueError(f'Unexpected dependency {key}: {obj.type.name}')
         ids[key] = len(ids) + 2  # Path ID 1 is the AssetBundle index.
         tree = obj.read_typetree()
-        if key == ('level7', transform_id):
+        if key == (scene_name, transform_id):
             tree['m_Father'] = {'m_FileID': 0, 'm_PathID': 0}
         if obj.type.name == 'Texture2D':
             stream = tree['m_StreamData']
             if stream['size']:
-                source = data_root / stream['path']
+                stream_name = stream['path'].rsplit('/', 1)[-1] if map_bundle else stream['path']
+                source = data_root / stream_name
                 if source.parent.resolve() != data_root.resolve():
                     raise ValueError('Unexpected external texture path')
                 if source.is_file():
@@ -98,27 +112,27 @@ def extract(game: Path, output: Path):
                         handle.seek(stream['offset'])
                         image = handle.read(stream['size'])
                 else:
-                    image = archive.read(stream['path'], stream['offset'], stream['size'])
+                    image = archive.read(stream_name, stream['offset'], stream['size'])
                 if len(image) != stream['size']:
                     raise ValueError('Incomplete texture stream')
                 tree['image data'] = image
                 tree['m_StreamData'] = dict(offset=0, size=0, path='')
-                payload_hashes[tree['m_Name']] = sha(image)
+            payload_hashes[tree['m_Name']] = sha(bytes(tree['image data']))
         trees[key] = tree
         for ptr in pointers(tree):
             dependency = resolve(name, ptr)
             if dependency:
                 collect(dependency)
 
-    collect(('level7', snow_id))  # Native Alpine Particle System and its exact renderer.
-    collect(('sharedassets0.assets', 20))  # Original StormSphere FogConfig.windTexture.
-    if file('level7').objects[particle_id].type.name != 'ParticleSystem':
+    collect((scene_name, snow_id))  # Native Alpine Particle System and its exact renderer.
+    collect(fog_key)  # Original StormSphere FogConfig.windTexture.
+    if file(scene_name).objects[particle_id].type.name != 'ParticleSystem':
         raise ValueError('Native particle component moved')
-    if trees[('sharedassets4.assets', 171)]['m_Name'] != 'M_VFX_Snow':
+    if trees[material_key]['m_Name'] != 'M_VFX_Snow':
         raise ValueError('Original snow material moved')
 
     # Start from the exact game serialization version; retain no scene objects/types.
-    output_file = copy.copy(file('level7'))
+    output_file = copy.copy(file(scene_name))
     output_file.name = 'CAB-continued-native-alpine-snow-' + suffix
     output_file.objects = {}
     output_file.types = []
@@ -173,8 +187,8 @@ def extract(game: Path, output: Path):
                               name=tree.get('m_Name', ''), bundledPathId=path_id))
 
     preload = [dict(m_FileID=0, m_PathID=pid) for pid in ids.values()]
-    entries = [('assets/continued/native-alpine-snow.prefab', ('level7', snow_id)),
-               ('assets/continued/native-alpine-fog.texture', ('sharedassets0.assets', 20))]
+    entries = [('assets/continued/native-alpine-snow.prefab', (scene_name, snow_id)),
+               ('assets/continued/native-alpine-fog.texture', fog_key)]
     bundle_tree = dict(m_Name='continued-native-alpine-snow-' + suffix, m_PreloadTable=preload,
         m_Container=[(name, dict(preloadIndex=0, preloadSize=len(preload),
                                 asset=dict(m_FileID=0, m_PathID=ids[key]))) for name, key in entries],
@@ -182,7 +196,7 @@ def extract(game: Path, output: Path):
         m_RuntimeCompatibility=1, m_AssetBundleName='continued-native-alpine-snow-' + suffix,
         m_Dependencies=[], m_IsStreamedSceneAssetBundle=False, m_ExplicitDataLayout=0,
         m_PathFlags=7, m_SceneHashes=[])
-    append_object(1, 142, file('level7').types[0], bundle_tree)
+    append_object(1, 142, file(scene_name).types[0], bundle_tree)
     bundle = object.__new__(BundleFile)
     bundle.signature = 'UnityFS'
     bundle.version = 8
@@ -197,11 +211,11 @@ def extract(game: Path, output: Path):
     # Re-read the artifact and compare all particle module values with the original.
     checked = UnityPy.load(result)
     checked_objects = {obj.path_id: obj for obj in checked.objects}
-    native_particle = copy.deepcopy(trees[('level7', particle_id)])
+    native_particle = copy.deepcopy(trees[(scene_name, particle_id)])
     for ptr in pointers(native_particle):
-        dep = resolve('level7', ptr)
+        dep = resolve(scene_name, ptr)
         ptr.update(m_FileID=0, m_PathID=ids[dep] if dep else 0)
-    if checked_objects[ids[('level7', particle_id)]].read_typetree() != native_particle:
+    if checked_objects[ids[(scene_name, particle_id)]].read_typetree() != native_particle:
         raise ValueError('Particle round-trip changed native values')
     for key, pid in ids.items():
         original = trees[key]

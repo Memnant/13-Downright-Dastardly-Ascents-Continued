@@ -13,7 +13,7 @@ namespace dda;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "13dastardlyascents";
-    public const string Version = "1.5.21";
+    public const string Version = "1.5.22";
     public const string SupportedGame = GameVersionPolicy.VerifiedGame;
     internal static string ActualGameVersion = SupportedGame;
     internal static ManualLogSource Log;
@@ -30,10 +30,12 @@ public sealed class Plugin : BaseUnityPlugin
         try
         {
             string versionFile = Path.Combine(Paths.GameRootPath, "version.txt");
-            string gameVersion = File.ReadAllLines(versionFile)[0].Trim();
+            string rawVersion = File.ReadAllLines(versionFile)[0].Trim();
+            string gameVersion = GameVersionPolicy.Normalize(rawVersion);
             var compatibility = RuntimeCompatibility.Check(gameVersion, Info.Location,
                 Paths.ManagedPath, Path.Combine(Paths.BepInExRootPath, "core"));
             ActualGameVersion = gameVersion;
+            if (rawVersion != gameVersion) Log.LogInfo("Recognized audited PEAK build label: " + rawVersion + " -> " + gameVersion);
             Log.LogInfo($"Compatibility interfaces passed: patches={compatibility.PatchDeclarations}, members={compatibility.CheckedMembers}, game={gameVersion}.");
             if (compatibility.UnverifiedBuild)
                 Log.LogWarning($"PEAK {gameVersion} is not the verified {SupportedGame} build. Experimental compatibility: gameplay, networking or saves may break after game updates even when interface checks pass. Back up saves and use the same game/mod version for everyone.");

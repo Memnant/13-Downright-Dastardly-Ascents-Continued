@@ -1,28 +1,32 @@
 using System;
+using System.Globalization;
 
 namespace dda;
 
 public static class GameVersionPolicy
 {
-    public const string VerifiedGame = "2.6.a";
-    public const string AllowedSeries = "2.6";
+    public const string VerifiedGame = "3.0.0";
+    public const string AllowedSeries = "3.0";
     public const int NativeSaveVersion = 4;
 
-    // PEAK uses lower-case letter patch suffixes. Reject malformed versions and
-    // other series instead of treating a prefix such as 2.60 as 2.6.
-    public static bool Allows(string version)
+    // The audited Steam build contains this exact packaging suffix in version.txt.
+    // Do not strip arbitrary command-like suffixes or alter the game file.
+    public static string Normalize(string version) => version == "3.0.0--logFile" ? VerifiedGame : version;
+
+    public static bool Allows(string version) => TryPatch(version, out _);
+
+    private static bool TryPatch(string version, out int patch)
     {
-        if (version == null || !version.StartsWith("2.6.", StringComparison.Ordinal) || version.Length < 5) return false;
-        for (int i = 4; i < version.Length; i++)
-            if (version[i] < 'a' || version[i] > 'z') return false;
-        return true;
+        patch = 0;
+        version = Normalize(version);
+        if (version == null || !version.StartsWith("3.0.", StringComparison.Ordinal)) return false;
+        string suffix = version.Substring(4);
+        return int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out patch) &&
+            patch >= 0 && suffix == patch.ToString(CultureInfo.InvariantCulture);
     }
 
     public static bool CanReadSave(string savedGame, string currentGame)
     {
-        if (!Allows(savedGame) || !Allows(currentGame)) return false;
-        // Permit forward patch updates only; never silently downgrade a save.
-        return savedGame.Length < currentGame.Length ||
-            (savedGame.Length == currentGame.Length && string.CompareOrdinal(savedGame, currentGame) <= 0);
+        return TryPatch(savedGame, out int saved) && TryPatch(currentGame, out int current) && saved <= current;
     }
 }

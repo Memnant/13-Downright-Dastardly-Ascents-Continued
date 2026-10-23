@@ -4,6 +4,9 @@ Uses UnityPy's compression/reader implementation. Only the audited UnityFS 8
 layout is supported; the game file is always opened read-only.
 """
 from pathlib import Path
+import bisect
+import io
+from collections import OrderedDict
 from UnityPy.streams import EndianBinaryReader
 from UnityPy.helpers import CompressionHelper
 from UnityPy.enums import CompressionFlags
@@ -82,3 +85,56 @@ class UnityArchive:
         if len(result) != length:
             raise ValueError('Incomplete archive entry')
         return bytes(result)
+
+    def open(self, name):
+        """Seek within one entry using an 8 MiB block cache, without loading a map bundle."""
+        return _ArchiveEntry(self, name)
+
+
+class _ArchiveEntry(io.RawIOBase):
+    def __init__(self, archive, name):
+        self.archive = archive
+        self.offset, self.length, _ = archive.entries[name]
+        self.position = 0
+        self.starts = [block[0] for block in archive.blocks]
+        self.cache = OrderedDict()
+        self.cache_bytes = 0
+        self.handle = archive.path.open('rb')
+
+    def readable(self): return True
+    def seekable(self): return True
+    def tell(self): return self.position
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        position = offset if whence == io.SEEK_SET else self.position + offset if whence == io.SEEK_CUR else self.length + offset
+        if position < 0 or position > self.length: raise ValueError('Invalid archive stream seek')
+        self.position = position
+        return position
+
+    def read(self, size=-1):
+        if self.closed: raise ValueError('Archive stream is closed')
+        remaining = self.length - self.position if size < 0 else min(size, self.length - self.position)
+        output = bytearray()
+        while remaining:
+            absolute = self.offset + self.position
+            index = bisect.bisect_right(self.starts, absolute) - 1
+            start, raw_size, disk_start, disk_size, flags = self.archive.blocks[index]
+            block = self.cache.pop(index, None)
+            if block is None:
+                self.handle.seek(disk_start)
+                block = self.archive.decompress(self.handle.read(disk_size), raw_size, flags)
+                self.cache_bytes += len(block)
+            self.cache[index] = block
+            while self.cache_bytes > 8 * 1024 * 1024 and len(self.cache) > 1:
+                _, evicted = self.cache.popitem(last=False)
+                self.cache_bytes -= len(evicted)
+            take = min(remaining, start + raw_size - absolute)
+            output.extend(block[absolute - start:absolute - start + take])
+            self.position += take
+            remaining -= take
+        return bytes(output)
+
+    def close(self):
+        self.handle.close()
+        self.cache.clear()
+        super().close()

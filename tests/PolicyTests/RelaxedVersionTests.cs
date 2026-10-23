@@ -4,9 +4,9 @@ internal static class RelaxedVersionTests
 {
     internal static void Run(Action<bool, string> check)
     {
-        foreach (string game in new[] { "2.6.a", "2.6.b", "2.6.z", "2.6.aa" })
-            check(GameVersionPolicy.Allows(game), "allow letter patches in the 2.6 series");
-        foreach (string game in new[] { null, "", "2.6", "2.6.", "2.6.A", "2.6.a beta", "2.6.a\n", " 2.6.a", "2.6.a.1", "2.60.a", "2.7.a", "3.0.a", "2.5.a", "2.6.1" })
+        foreach (string game in new[] { "3.0.0", "3.0.0--logFile", "3.0.1", "3.0.10" })
+            check(GameVersionPolicy.Allows(game), "allow numeric patches in the 3.0 series");
+        foreach (string game in new[] { null, "", "2.6", "2.6.", "2.6.A", "2.6.a beta", "2.6.a\n", " 2.6.a", "2.6.a.1", "2.60.a", "2.7.a", "3.0.a", "2.5.a", "2.6.1", "3.0", "3.0.a", "3.0.01", "3.0.-1", "3.0.2147483648", "3.0.1--logFile", "3.1.0", "3.0.0 beta", "3.0.0\n" })
             check(!GameVersionPolicy.Allows(game), "other series and malformed versions are rejected");
         var id = Guid.NewGuid();
         foreach (int level in new[] { 0, 9, 14, 18, 20 })

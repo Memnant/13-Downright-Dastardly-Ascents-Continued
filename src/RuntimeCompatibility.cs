@@ -16,14 +16,14 @@ internal sealed class CompatibilityReport
 
 internal static class RuntimeCompatibility
 {
-    private const string VerifiedMvid = "be46e6d8-8207-4c79-aa1e-b196eb5e0358";
+    private const string VerifiedMvid = "b5521262-0ce1-4a6c-a2bb-f18e027e413e";
 
     // Metadata only, once at startup, before PatchAll. No game code executes,
     // and all assemblies are opened read-only and disposed before returning.
     internal static CompatibilityReport Check(string version, string pluginPath, string managedDirectory, string coreDirectory, string gameAssemblyOverride = null)
     {
         if (!GameVersionPolicy.Allows(version))
-            throw new NotSupportedException("This build allows PEAK 2.6 letter patches; found " + version + ". Other series need a separate compatibility review.");
+            throw new NotSupportedException("This build allows PEAK 3.0 numeric patches; found " + version + ". Other series need a separate compatibility review.");
         using var resolver = new GameResolver();
         resolver.AddSearchDirectory(managedDirectory);
         resolver.AddSearchDirectory(coreDirectory);
@@ -33,7 +33,7 @@ internal static class RuntimeCompatibility
         using var mod = AssemblyDefinition.ReadAssembly(pluginPath, reader);
         var report = new CompatibilityReport {
             GameMvid = game.MainModule.Mvid.ToString(),
-            UnverifiedBuild = version != GameVersionPolicy.VerifiedGame || game.MainModule.Mvid.ToString() != VerifiedMvid
+            UnverifiedBuild = GameVersionPolicy.Normalize(version) != GameVersionPolicy.VerifiedGame || game.MainModule.Mvid.ToString() != VerifiedMvid
         };
         var errors = new List<string>();
         foreach (var reference in mod.MainModule.GetMemberReferences())
