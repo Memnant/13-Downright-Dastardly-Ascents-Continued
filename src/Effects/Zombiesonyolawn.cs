@@ -14,14 +14,14 @@ internal static class Zombiesonyolawn
 		{
 			var zombie = __instance.spawnedZombie;
 			if (zombie == null) return;
-			EffectState.Set(zombie, "attackHeightDelta", EffectState.Original(zombie, "zombie.height", zombie.attackHeightDelta) * 2f);
-			EffectState.Set(zombie, "biteStunTime", EffectState.Original(zombie, "zombie.stun", zombie.biteStunTime) * 2f);
-			EffectState.Set(zombie, "distanceBeforeWakeup", EffectState.Original(zombie, "zombie.wake", zombie.distanceBeforeWakeup) * 2f);
-			EffectState.Set(zombie, "distanceToEnable", EffectState.Original(zombie, "zombie.enable", zombie.distanceToEnable) * 2f);
-			EffectState.Set(zombie, "distanceBeforeChase", 0f);
-			EffectState.Set(zombie.character.refs.movement, "drag", 0.98f);
+			EffectState.Set(zombie, nameof(zombie.attackHeightDelta), EffectState.Original(zombie, "zombie.height", zombie.attackHeightDelta) * 2f);
+			EffectState.Set(zombie, nameof(zombie.biteStunTime), EffectState.Original(zombie, "zombie.stun", zombie.biteStunTime) * 2f);
+			EffectState.Set(zombie, nameof(zombie.distanceBeforeWakeup), EffectState.Original(zombie, "zombie.wake", zombie.distanceBeforeWakeup) * 2f);
+			EffectState.Set(zombie, nameof(zombie.distanceToEnable), EffectState.Original(zombie, "zombie.enable", zombie.distanceToEnable) * 2f);
+			EffectState.Set(zombie, nameof(zombie.distanceBeforeChase), 0f);
 			var movement = zombie.character.refs.movement;
-			EffectState.Set(movement, "movementForce", EffectState.Original(movement, "zombie.force", movement.movementForce) * 1.2f);
+			EffectState.Set(movement, nameof(movement.drag), 0.98f);
+			EffectState.Set(movement, nameof(movement.movementForce),EffectState.Original(movement, "zombie.force", movement.movementForce) * 1.2f);
 		}
 	}
 }

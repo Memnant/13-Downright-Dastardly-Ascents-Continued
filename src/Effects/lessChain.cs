@@ -11,7 +11,7 @@ internal static class lessChain
 		if (!(Rules.Enabled(12))) return;
 		if (Rules.Enabled(12))
 		{
-			EffectState.Set(__instance, "maxLength", 30f);
+			EffectState.Set(__instance, nameof(__instance.maxLength), 30f);
 		}
 	}
 }

@@ -169,20 +169,20 @@ internal static class uberSplode
 			{
 				if (__instance.statusType == CharacterAfflictions.STATUSTYPE.Cold)
 				{
-					EffectState.Set(__instance, "damage", 0.02f);
+					EffectState.Set(__instance, nameof(__instance.damage), 0.02f);
 				}
 				else if (__instance.statusType == CharacterAfflictions.STATUSTYPE.Hot)
 				{
-					EffectState.Set(__instance, "damage", 0.02f);
+					EffectState.Set(__instance, nameof(__instance.damage), 0.02f);
 				}
 				else if (__instance.statusType == CharacterAfflictions.STATUSTYPE.Poison)
 				{
-					EffectState.Set(__instance, "damage", 0.5f);
+					EffectState.Set(__instance, nameof(__instance.damage), 0.5f);
 				}
 			}
 			if (__instance.name == "HangBridge")
 			{
-				EffectState.Set(__instance, "damage", 0f);
+				EffectState.Set(__instance, nameof(__instance.damage), 0f);
 			}
 			return true;
 		}
@@ -213,97 +213,58 @@ internal static class uberSplode
 		}
 	}
 
-	internal static bool Prefix(AOE __instance)
+	// Scale the explosion's own parameters and let the native 3.0 Explode run, so line of sight,
+	// blindness, fall-damage caps, afflictions, carried scouts and grounded-item rules stay intact.
+	internal const float StatusScale = 2f;
+	internal const float FallScale = 3f;
+	// The old body used AddForce(..., 2.1f, 5.2f) instead of the native 0.7f-1.3f random range:
+	// on average 3.65 times the native push. Items were not scaled, so their multiplier is divided back.
+	internal const float KnockbackScale = 3.65f;
+	[System.ThreadStatic] private static int explosionDepth;
+	internal static bool InExplosion => explosionDepth > 0;
+	internal struct Scaled
 	{
-			if (!(Rules.Enabled(9))) return true;
-		if (__instance.range == 0f)
-		{
-			return false;
-		}
-		Collider[] array = Physics.OverlapSphere(__instance.transform.position, __instance.range, HelperFunctions.GetMask(__instance.mask));
-		List<Character> list = new List<Character>();
-		for (int i = 0; i < array.Length; i++)
-		{
-			CharacterRagdoll.TryGetCharacterFromCollider(array[i], out Character componentInParent);
-			if (componentInParent != null && !list.Contains(componentInParent))
-			{
-				float num = Vector3.Distance(__instance.transform.position, componentInParent.Center);
-				if (!(num <= __instance.range))
-				{
-					continue;
-				}
-				float factor = __instance.GetFactor(num);
-				if (!(factor >= __instance.minFactor))
-				{
-					continue;
-				}
-				list.Add(componentInParent);
-				Vector3 zero = Vector3.zero;
-				zero = ((!__instance.useSingleDirection) ? (componentInParent.Center - __instance.transform.position).normalized : __instance.singleDirectionForwardTF.forward);
-				if (Mathf.Abs(__instance.statusAmount) > 0f)
-				{
-					if (__instance.illegalStatus != "")
-					{
-						componentInParent.AddIllegalStatus(__instance.illegalStatus, __instance.statusAmount * factor);
-					}
-					else
-					{
-						Debug.Log($"Adding status {__instance.statusType} with amount {__instance.statusAmount * factor} to player {componentInParent.name}");
-						if (Rules.Enabled(9))
-						{
-							componentInParent.refs.afflictions.AdjustStatus(__instance.statusType, __instance.statusAmount * factor * 2f);
-						}
-						else
-						{
-							componentInParent.refs.afflictions.AdjustStatus(__instance.statusType, __instance.statusAmount * factor);
-						}
-					}
-				}
-				if (Rules.Enabled(9))
-				{
-					componentInParent.AddForce(zero * factor * __instance.knockback, 2.1f, 5.2f);
-				}
-				else
-				{
-					componentInParent.AddForce(zero * factor * __instance.knockback, 0.7f, 1.3f);
-				}
-				if (__instance.fallTime > 0f && componentInParent.IsLocal)
-				{
-					LegacyPenalties.ExplosionDrowsiness(componentInParent);
+		internal bool changed, status;
+		internal float statusAmount, fallTime, knockback, vertical, items;
+	}
 
-					if (Rules.Enabled(9))
-					{
-						componentInParent.Fall(factor * __instance.fallTime * 3f, 0f);
-					}
-					else
-					{
-						componentInParent.Fall(factor * __instance.fallTime, 0f);
-					}
-				}
-			}
-			else
-			{
-				if (!__instance.canLaunchItems)
-				{
-					continue;
-				}
-				Item componentInParent2 = array[i].GetComponentInParent<Item>();
-				if (!(componentInParent2 != null) || !componentInParent2.photonView.IsMine)
-				{
-					continue;
-				}
-				float num2 = Vector3.Distance(__instance.transform.position, componentInParent2.Center());
-				if (num2 <= __instance.range)
-				{
-					float factor2 = __instance.GetFactor(num2);
-					if (factor2 >= __instance.minFactor)
-					{
-						Vector3 normalized = (componentInParent2.Center() - __instance.transform.position).normalized;
-						componentInParent2.rig.AddForce(normalized * factor2 * __instance.knockback * __instance.itemKnockbackMultiplier, ForceMode.Impulse);
-					}
-				}
-			}
-		}
-		return false;
+	internal static void Prefix(AOE __instance, out Scaled __state)
+	{
+		__state = default;
+		if (!Rules.Enabled(9)) return;
+		__state = new Scaled {
+			changed = true, status = string.IsNullOrEmpty(__instance.illegalStatus), statusAmount = __instance.statusAmount,
+			fallTime = __instance.fallTime, knockback = __instance.knockback,
+			vertical = __instance.additionalVerticalKnockback, items = __instance.itemKnockbackMultiplier
+		};
+		// Illegal statuses and blindness were never doubled by the old explosion.
+		if (__state.status) __instance.statusAmount *= StatusScale;
+		__instance.fallTime *= FallScale;
+		__instance.knockback *= KnockbackScale;
+		__instance.additionalVerticalKnockback *= KnockbackScale;
+		__instance.itemKnockbackMultiplier /= KnockbackScale;
+		explosionDepth++;
+	}
+
+	internal static System.Exception Finalizer(AOE __instance, Scaled __state, System.Exception __exception)
+	{
+		if (!__state.changed) return __exception;
+		explosionDepth--;
+		__instance.statusAmount = __state.statusAmount;
+		__instance.fallTime = __state.fallTime;
+		__instance.knockback = __state.knockback;
+		__instance.additionalVerticalKnockback = __state.vertical;
+		__instance.itemKnockbackMultiplier = __state.items;
+		return __exception;
+	}
+}
+
+// Native Explode calls Fall only for its owner's character; the old body added drowsiness right before that fall.
+[HarmonyPatch(typeof(Character), "Fall")]
+internal static class ExplosionFallDrowsiness
+{
+	private static void Prefix(Character __instance)
+	{
+		if (uberSplode.InExplosion && Rules.Enabled(9)) LegacyPenalties.ExplosionDrowsiness(__instance);
 	}
 }

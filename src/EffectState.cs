@@ -43,9 +43,12 @@ internal static class EffectState
                     if (member != null) break;
                     type = type.BaseType;
                 }
-                if (member == null) throw new MissingMemberException(key);
+                // A game update renamed the member. Callers run in Update/FixedUpdate prefixes:
+                // throwing there would skip the native method every frame. Log once and skip only this effect.
+                if (member == null) Plugin.Log.LogError("Continued effect disabled; game member is missing: " + key);
                 members[key] = member;
             }
+            if (member == null) return;
             change = new Change { owner = new WeakReference<object>(owner), member = member };
             change.original = change.Read(owner);
             values[name] = change;

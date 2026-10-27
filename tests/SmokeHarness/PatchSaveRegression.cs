@@ -43,7 +43,7 @@ internal static class PatchSaveRegression
             string original = File.ReadAllText(sidecar);
             object record = Read();
             Assert((string)Get(record, "gameVersion") == "3.0.0" && (int)Get(record, "nativeSaveVersion") == 4, "writer records actual game and native format");
-            Assert((string)Get(record, "modVersion") == "1.5.22", "writer records this plugin version");
+            Assert((string)Get(record, "modVersion") == "1.5.23", "writer records this plugin version");
             fields[5].SetValue(null, "3.0.1");
             Assert(Resume(), "same-format forward patch resumes rules");
             Assert(File.ReadAllText(sidecar) == original && File.ReadAllText(nativeFile.FullName) == native, "resume reads without rewriting native or sidecar");

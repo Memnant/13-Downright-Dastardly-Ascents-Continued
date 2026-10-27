@@ -12,8 +12,8 @@ internal static class worseNRGDrink
 		if (!(Rules.Enabled(12))) return;
 		if (Rules.Enabled(12))
 		{
-			EffectState.Set(__instance, "moveSpeedMod", 0.6f);
-			EffectState.Set(__instance, "climbSpeedMod", 0.7f);
+			EffectState.Set(__instance, nameof(__instance.moveSpeedMod), 0.6f);
+			EffectState.Set(__instance, nameof(__instance.climbSpeedMod), 0.7f);
 		}
 	}
 }

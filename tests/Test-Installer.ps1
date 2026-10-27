@@ -28,14 +28,17 @@ if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw
 '3.0.1' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
 if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Patch preview mutated plugins.'}
-foreach ($unsupported in @('2.6.a','3.1.0','3.00.0','3.0.a','3.0.01','3.0.2147483648','3.0.1--logFile')) {
+'3.1.0--logFile' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+& (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native
+if(-not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Minor-version preview mutated plugins.'}
+foreach ($unsupported in @('2.6.a','4.0.0','3.00.0','3.0.a','3.0.01','3.01.0','3.0.2147483648','3.2147483648.0','3.0.1--logfile','3.0.--logFile','4.0.0--logFile')) {
     $unsupported | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
     $versionRejected=$false
     try { & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply }
-    catch { if ($_.Exception.Message -notlike '*3.0*') { throw }; $versionRejected=$true }
+    catch { if ($_.Exception.Message -notlike '*PEAK 3.x*') { throw }; $versionRejected=$true }
     if(-not $versionRejected -or -not(Test-Path -LiteralPath $old) -or (Test-Path -LiteralPath $target)){throw 'Unsupported version was not rejected before mutation.'}
 }
-'3.0.0--logFile' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
+'3.0.1--logFile' | Set-Content -LiteralPath (Join-Path $testGame 'version.txt') -Encoding UTF8
 & (Join-Path $projectRoot 'tools\install.ps1') -GamePath $testGame -DllPath $candidate -NativeSavePath $native -Apply
 if(Test-Path -LiteralPath $old){throw 'Old renamed DLL would still load.'}
 if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash){throw 'Candidate differs after install.'}

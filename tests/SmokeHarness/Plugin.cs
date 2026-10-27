@@ -102,6 +102,9 @@ public sealed class SmokeHarness : BaseUnityPlugin
                 new[] { 0.1f, 0.05f, 0.8f, 10f }, new[] { 0.15f, 0.05f, 0.8f, 10f });
             Verify("dda.uberSplode+uberEmitter", "StatusEmitter", new[] { "amount" }, new[] { 0.1f }, new[] { 0.4f });
             Verify("dda.uberSplode+uberEmitter", "StatusEmitter", new[] { "amount" }, new[] { -0.1f }, new[] { -0.1f });
+            // Tier-9 explosions now scale the native 3.0 Explode parameters and restore them afterwards.
+            Verify("dda.uberSplode", "AOE", new[] { "statusAmount", "fallTime", "knockback", "additionalVerticalKnockback", "itemKnockbackMultiplier" },
+                new[] { 0.2f, 0.5f, 25f, 2f, 1f }, new[] { 0.4f, 1.5f, 25f * 3.65f, 2f * 3.65f, 1f / 3.65f });
             return assertions;
 
             void Verify(string patchName, string gameType, string[] names, float[] baseline, float[] changed)

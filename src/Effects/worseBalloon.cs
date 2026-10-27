@@ -11,7 +11,7 @@ internal static class worseBalloon
 		if (!(Rules.Enabled(12))) return;
 		if (Rules.Enabled(12))
 		{
-			EffectState.Set(__instance, "floatForce", 5f);
+			EffectState.Set(__instance, nameof(__instance.floatForce), 5f);
 		}
 	}
 }

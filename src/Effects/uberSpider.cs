@@ -11,8 +11,8 @@ internal static class uberSpider
 		if (!(Rules.Enabled(9))) return;
 		if (Rules.Enabled(9))
 		{
-			EffectState.Set(__instance, "poisonDamage", 0.1f);
-			EffectState.Set(__instance, "poisonFrequency", 2f);
+			EffectState.Set(__instance, nameof(__instance.poisonDamage), 0.1f);
+			EffectState.Set(__instance, nameof(__instance.poisonFrequency), 2f);
 		}
 	}
 }

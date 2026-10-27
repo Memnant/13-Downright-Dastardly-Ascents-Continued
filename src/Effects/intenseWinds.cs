@@ -1,4 +1,5 @@
 // Adapted from the user-supplied 13dda.dll. Original design: pooblives.
+using System;
 using HarmonyLib;
 using UnityEngine;
 using Zorro.Core;
@@ -8,83 +9,65 @@ namespace dda;
 [HarmonyPatch(typeof(WindChillZone), "ApplyStatus")]
 internal static class intenseWinds
 {
-	internal static bool Prefix(WindChillZone __instance)
+	internal struct Suppressed { internal bool changed, slippy; internal float status; }
+
+	// Native ApplyStatus still runs: it computes windPlayerFactor and PEAK 3.0's wind
+	// climbing-stamina multiplier. Only its single status/slip delivery is switched off
+	// for this call; the tiered statuses below replace it, as in the original mod.
+	internal static bool Prefix(WindChillZone __instance, Character character, out Suppressed __state)
 	{
+		__state = default;
 		if (WeatherGrace.Suppress(__instance)) return false;
-		if (!(Rules.Enabled(14) || Rules.Enabled(20))) return true;
-		if (Character.localCharacter == null || !MapHandler.Exists || DayNightManager.instance == null) return true;
+		if (!Rules.Enabled(14) || !Rules.Owns(character) || !MapHandler.Exists || DayNightManager.instance == null) return true;
 		if (__instance.name != "WindStorm" && __instance.name != "SnowStorm" && __instance.name != "RainStorm") return true;
-		if (Rules.Enabled(14))
+		var map = Singleton<MapHandler>.Instance;
+		if (__instance.name == "WindStorm")
 		{
-			if (__instance.name == "WindStorm")
-			{
-				EffectState.Set(__instance, "windForce", 30f);
-				if (Singleton<MapHandler>.Instance.GetCurrentBiome() == Biome.BiomeType.Roots && Singleton<MapHandler>.Instance.GetCurrentSegment() == Segment.Tropics)
-				{
-					EffectState.Set(__instance, "windForce", 50f);
-				}
-				else if (Singleton<MapHandler>.Instance.GetCurrentSegment() == Segment.TheKiln || Singleton<MapHandler>.Instance.GetCurrentSegment() == Segment.Peak)
-				{
-					EffectState.Set(__instance, "windForce", 0f);
-				}
-			}
-			__instance.windPlayerFactor = WindChillZone.GetWindIntensityAtPoint(Character.localCharacter.Center, __instance.lightVolumeSampleThreshold_lower, __instance.lightVolumeSampleThreshold_margin);
-			if ((Rules.Enabled(20)) && __instance.name == "SnowStorm")
-			{
-				if (Singleton<MapHandler>.Instance.GetCurrentBiome() != Biome.BiomeType.Alpine || Singleton<MapHandler>.Instance.GetCurrentSegment() != Segment.Alpine)
-				{
-					EffectState.Set(__instance, "windForce", 12f);
-					EffectState.Set(__instance, "statusApplicationPerSecond", 0.01f);
-				}
-				else
-				{
-					EffectState.Set(__instance, "windForce", 20f);
-					EffectState.Set(__instance, "statusApplicationPerSecond", 0.07f);
-				}
-			}
-			if (__instance.name == "SnowStorm")
-			{
-				if ((Singleton<MapHandler>.Instance.GetCurrentSegment() == Segment.Alpine && Singleton<MapHandler>.Instance.GetCurrentSegment() != Segment.Caldera) || DayNightManager.instance.isDay < 0.5f)
-				{
-					Character.localCharacter.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Cold, __instance.windPlayerFactor * __instance.statusApplicationPerSecond * Time.deltaTime * Mathf.Clamp01(__instance.hasBeenActiveFor * 0.2f) * 1.2f, false, true, true);
-				}
-				else if (Singleton<MapHandler>.Instance.GetCurrentSegment() != Segment.Caldera)
-				{
-					Character.localCharacter.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Hot, __instance.windPlayerFactor * __instance.statusApplicationPerSecond * Time.deltaTime * Mathf.Clamp01(__instance.hasBeenActiveFor * 0.2f), false, true, true);
-				}
-			}
-			if (__instance.name == "RainStorm")
-			{
-				if (Character.localCharacter.data.groundedFor > 0.5f || Character.localCharacter.data.isClimbing)
-				{
-					Character.localCharacter.data.slippy = Mathf.Clamp01(Mathf.Max(Character.localCharacter.data.slippy, __instance.windPlayerFactor * 200f));
-				}
-				else
-				{
-					RaycastHit raycastHit = HelperFunctions.LineCheck(Character.localCharacter.Center + new Vector3(0f, 500f, 0f), Character.localCharacter.Center, HelperFunctions.LayerType.AllPhysical);
-					if (raycastHit.transform == null || raycastHit.transform.root == Character.localCharacter.transform.root)
-					{
-						if (Singleton<MapHandler>.Instance.GetCurrentSegment() != Segment.Tropics)
-						{
-							Character.localCharacter.GetBodypart(BodypartType.Hip).rig.linearVelocity -= new Vector3(0f, 200f * Time.deltaTime, 0f);
-						}
-						else
-						{
-							Character.localCharacter.GetBodypart(BodypartType.Hip).rig.linearVelocity -= new Vector3(0f, 400f * Time.deltaTime, 0f);
-						}
-					}
-				}
-			}
+			float force = map.GetCurrentBiome() == Biome.BiomeType.Roots && map.GetCurrentSegment() == Segment.Tropics ? 50f :
+				map.GetCurrentSegment() == Segment.TheKiln || map.GetCurrentSegment() == Segment.Peak ? 0f : 30f;
+			EffectState.Set(__instance, nameof(__instance.windForce), force);
 		}
-		else
+		if (Rules.Enabled(20) && __instance.name == "SnowStorm")
 		{
-			__instance.windPlayerFactor = WindChillZone.GetWindIntensityAtPoint(Character.localCharacter.Center, __instance.lightVolumeSampleThreshold_lower, __instance.lightVolumeSampleThreshold_margin);
-			Character.localCharacter.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Cold, __instance.windPlayerFactor * __instance.statusApplicationPerSecond * Time.deltaTime * Mathf.Clamp01(__instance.hasBeenActiveFor * 0.2f), false, true, true);
-			if (__instance.setSlippy)
-			{
-				Character.localCharacter.data.slippy = Mathf.Clamp01(Mathf.Max(Character.localCharacter.data.slippy, __instance.windPlayerFactor * 10f));
-			}
+			bool alpine = map.GetCurrentBiome() == Biome.BiomeType.Alpine && map.GetCurrentSegment() == Segment.Alpine;
+			EffectState.Set(__instance, nameof(__instance.windForce), alpine ? 20f : 12f);
+			EffectState.Set(__instance, nameof(__instance.statusApplicationPerSecond), alpine ? 0.07f : 0.01f);
 		}
-		return false;
+		__state = new Suppressed { changed = true, status = __instance.statusApplicationPerSecond, slippy = __instance.setSlippy };
+		__instance.statusApplicationPerSecond = 0f;
+		__instance.setSlippy = false;
+		return true;
+	}
+
+	internal static Exception Finalizer(WindChillZone __instance, Character character, Suppressed __state, Exception __exception)
+	{
+		if (!__state.changed) return __exception;
+		__instance.statusApplicationPerSecond = __state.status;
+		__instance.setSlippy = __state.slippy;
+		if (__exception == null) ApplyTieredStatus(__instance, character);
+		return __exception;
+	}
+
+	private static void ApplyTieredStatus(WindChillZone zone, Character character)
+	{
+		var segment = Singleton<MapHandler>.Instance.GetCurrentSegment();
+		var afflictions = character.refs.afflictions;
+		float ramp = zone.windPlayerFactor * zone.statusApplicationPerSecond * Time.deltaTime * Mathf.Clamp01(zone.hasBeenActiveFor * 0.2f);
+		if (zone.name == "SnowStorm")
+		{
+			if (segment == Segment.Alpine || DayNightManager.instance.isDay < 0.5f)
+				afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Cold, ramp * 1.2f, false, true, true);
+			else if (segment != Segment.Caldera)
+				afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Hot, ramp, false, true, true);
+		}
+		if (zone.name != "RainStorm") return;
+		if (character.data.groundedFor > 0.5f || character.data.isClimbing)
+		{
+			character.data.slippy = Mathf.Clamp01(Mathf.Max(character.data.slippy, zone.windPlayerFactor * 200f));
+			return;
+		}
+		RaycastHit hit = HelperFunctions.LineCheck(character.Center + new Vector3(0f, 500f, 0f), character.Center, HelperFunctions.LayerType.AllPhysical);
+		if (hit.transform == null || hit.transform.root == character.transform.root)
+			character.GetBodypart(BodypartType.Hip).rig.linearVelocity -= new Vector3(0f, (segment == Segment.Tropics ? 400f : 200f) * Time.deltaTime, 0f);
 	}
 }

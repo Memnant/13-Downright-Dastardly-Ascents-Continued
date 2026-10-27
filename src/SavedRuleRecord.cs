@@ -43,9 +43,13 @@ public sealed class SavedRuleRecord
         // checkpoint hash before accepting them. No game-version downgrade.
         // 2.6 uses format 4: never extend the 2.4/2.5 migration into 2.6.
         // The relaxed reader separately permits same-format forward 2.6 patches.
-        bool currentReader = expectedMod == "1.5.22";
+        // 1.5.22 and later (PEAK 3.x, format 4) read any sidecar written by 1.5.22 up to their own
+        // version. No per-release literal: a new mod version keeps reading older 3.x records,
+        // while an older mod still rejects a newer record. 2.6/1.5.21 records stay unmigrated.
+        bool currentReader = SameOrNewer(expectedMod, FirstThreeXWriter);
         if (currentReader && (nativeSaveVersion != GameVersionPolicy.NativeSaveVersion ||
-            modVersion != expectedMod || !GameVersionPolicy.CanReadSave(gameVersion, expectedGame))) return false;
+            !SameOrNewer(modVersion, FirstThreeXWriter) || !SameOrNewer(expectedMod, modVersion) ||
+            !GameVersionPolicy.CanReadSave(gameVersion, expectedGame))) return false;
         bool relaxedReader = expectedMod == "1.5.21";
         if (relaxedReader && !(nativeSaveVersion == GameVersionPolicy.NativeSaveVersion ||
             (nativeSaveVersion == null && modVersion == "1.5.20" && gameVersion == "2.6.a"))) return false;
@@ -56,7 +60,7 @@ public sealed class SavedRuleRecord
             !DifficultySnapshot.TryDecode(rules, out snapshot)) return false;
         if (schema == 1) return modVersion == "1.5.0" &&
             (expectedMod == "1.5.0" || expectedMod == "1.5.1" || expectedMod == "1.5.2" || expectedMod == "1.5.3" || expectedMod == "1.5.4" || expectedMod == "1.5.5" || expectedMod == "1.5.6" || expectedMod == "1.5.7" || expectedMod == "1.5.8" || expectedMod == "1.5.9" || expectedMod == "1.5.10" || expectedMod == "1.5.11" || expectedMod == "1.5.12" || expectedMod == "1.5.13" || expectedMod == "1.5.14" || expectedMod == "1.5.15" || expectedMod == "1.5.16" || expectedMod == "1.5.17" || expectedMod == "1.5.18" || expectedMod == "1.5.19");
-        bool compatibleVersion = modVersion == expectedMod ||
+        bool compatibleVersion = modVersion == expectedMod || currentReader ||
             (expectedMod == "1.5.21" && modVersion == "1.5.20" && gameVersion == "2.6.a") ||
             (expectedMod == "1.5.19" && KnownPriorVersion(modVersion, 1, 18)) ||
             (expectedMod == "1.5.18" && KnownPriorVersion(modVersion, 1, 17)) ||
@@ -92,6 +96,13 @@ public sealed class SavedRuleRecord
         return Valid(saved) && Valid(current) && (saved.Length < current.Length ||
             (saved.Length == current.Length && string.CompareOrdinal(saved, current) <= 0));
     }
+
+    private const string FirstThreeXWriter = "1.5.22";
+
+    // Strict three-part versions only ("1.5.22", not "1.5.22.0" or " 1.5.22").
+    private static bool SameOrNewer(string value, string minimum) =>
+        System.Version.TryParse(value, out var version) && version.ToString() == value && version.Revision == -1 &&
+        System.Version.TryParse(minimum, out var floor) && version >= floor;
 
     private static bool KnownPriorVersion(string value, int minimum, int maximum = 16)
     {

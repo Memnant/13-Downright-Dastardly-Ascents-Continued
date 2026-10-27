@@ -86,7 +86,7 @@ internal static class TideSync
             Singleton<MapHandler>.Instance.GetCurrentBiome() != Biome.BiomeType.Volcano) return true;
         var animator = lava.GetComponent<Animator>();
         if (animator == null) return true;
-        if (animator.enabled) EffectState.Set(animator, "enabled", false);
+        if (animator.enabled) EffectState.Set(animator, nameof(animator.enabled), false);
         if (!TryPhase(RunId, out double phase)) return false;
         Vector3 pos = lava.transform.position;
         pos.y = (float)VolcanoTide.Height(phase);

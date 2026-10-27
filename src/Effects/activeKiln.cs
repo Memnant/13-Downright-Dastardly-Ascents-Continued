@@ -27,8 +27,8 @@ internal static class activeKiln
             if (original <= 0f || float.IsNaN(original) || float.IsInfinity(original)) return;
             float travel = kiln ? 700f : original / 2.5f;
             bool changed = __instance.travelTime != travel || (!nadir && __instance.initialWaitTime != 30f);
-			if (!nadir && __instance.initialWaitTime != 30f) EffectState.Set(__instance, "initialWaitTime", 30f);
-			if (__instance.travelTime != travel) EffectState.Set(__instance, "travelTime", travel);
+			if (!nadir && __instance.initialWaitTime != 30f) EffectState.Set(__instance, nameof(__instance.initialWaitTime), 30f);
+			if (__instance.travelTime != travel) EffectState.Set(__instance, nameof(__instance.travelTime), travel);
             if (changed && !kiln) Plugin.Log.LogInfo($"Applied {(nadir ? "Nadir petrifying fog" : "Citadel Gloom")} speed x2.5: rise={travel:F2}s; native event/readiness/rest protections retained.");
 		}
 	}

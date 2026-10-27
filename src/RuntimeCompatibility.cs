@@ -16,14 +16,16 @@ internal sealed class CompatibilityReport
 
 internal static class RuntimeCompatibility
 {
-    private const string VerifiedMvid = "b5521262-0ce1-4a6c-a2bb-f18e027e413e";
+    // PEAK 3.0.1, Steam build 26155610. Against 3.0.0 (b5521262-...) only MainMenuJoinRoomPage
+    // changed; none of the patched targets or checked save fields did.
+    private const string VerifiedMvid = "136be7ad-59b8-46b6-803a-88c02a9d5c13";
 
     // Metadata only, once at startup, before PatchAll. No game code executes,
     // and all assemblies are opened read-only and disposed before returning.
     internal static CompatibilityReport Check(string version, string pluginPath, string managedDirectory, string coreDirectory, string gameAssemblyOverride = null)
     {
         if (!GameVersionPolicy.Allows(version))
-            throw new NotSupportedException("This build allows PEAK 3.0 numeric patches; found " + version + ". Other series need a separate compatibility review.");
+            throw new NotSupportedException("This build allows PEAK 3.x numeric versions; found " + version + ". Other major versions need a separate compatibility review.");
         using var resolver = new GameResolver();
         resolver.AddSearchDirectory(managedDirectory);
         resolver.AddSearchDirectory(coreDirectory);

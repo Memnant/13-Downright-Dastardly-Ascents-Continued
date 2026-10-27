@@ -11,9 +11,9 @@ internal static class poison
 		if (!(Rules.Enabled(9))) return true;
 		if (Rules.Enabled(9))
 		{
-			EffectState.Set(__instance, "poisonOverTimeDuration", 999f);
-			EffectState.Set(__instance, "statusAmount", 0.15f);
-			EffectState.Set(__instance, "poisonOverTimeAmountPerSecond", 0.1f);
+			EffectState.Set(__instance, nameof(__instance.poisonOverTimeDuration), 999f);
+			EffectState.Set(__instance, nameof(__instance.statusAmount), 0.15f);
+			EffectState.Set(__instance, nameof(__instance.poisonOverTimeAmountPerSecond), 0.1f);
 		}
 		return true;
 	}

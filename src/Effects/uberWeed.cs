@@ -12,10 +12,10 @@ internal static class uberWeed
 		if (!(Rules.Enabled(9))) return;
 		if (Rules.Enabled(9))
 		{
-			EffectState.Set(__instance, "rollForce", EffectState.Original(__instance, "weed.roll", __instance.rollForce) * Mathf.Lerp(0.5f, 1f, Mathf.Pow(Random.value, 6f)));
+			EffectState.Set(__instance, nameof(__instance.rollForce),EffectState.Original(__instance, "weed.roll", __instance.rollForce) * Mathf.Lerp(0.5f, 1f, Mathf.Pow(Random.value, 6f)));
 			if (Rules.Enabled(9))
 			{
-				EffectState.Set(__instance, "powerMultiplier", EffectState.Original(__instance, "weed.power", __instance.powerMultiplier) * 2f);
+				EffectState.Set(__instance, nameof(__instance.powerMultiplier),EffectState.Original(__instance, "weed.power", __instance.powerMultiplier) * 2f);
 			}
 		}
 	}

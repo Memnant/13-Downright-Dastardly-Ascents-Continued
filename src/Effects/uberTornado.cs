@@ -11,8 +11,8 @@ internal static class uberTornado
 		if (!(Rules.Enabled(14))) return;
 		if (Rules.Enabled(14))
 		{
-			EffectState.Set(__instance, "minSpawnTime", 20f);
-			EffectState.Set(__instance, "maxSpawnTime", 120f);
+			EffectState.Set(__instance, nameof(__instance.minSpawnTime), 20f);
+			EffectState.Set(__instance, nameof(__instance.maxSpawnTime), 120f);
 			if (__instance.untilNext > 120f)
 			{
 				__instance.untilNext = 0f;

@@ -8,13 +8,13 @@ if(-not $DllPath) {
     if(-not(Test-Path -LiteralPath $DllPath)) { $DllPath=Join-Path $projectRoot 'artifacts\BepInEx\plugins\PeakAscentsContinued\13dda.dll' }
 }
 $gameVersion=(Get-Content -LiteralPath (Join-Path $GamePath 'version.txt') -TotalCount 1).Trim()
-if($gameVersion -ceq '3.0.0--logFile') { $gameVersion='3.0.0' }
-$patchNumber=0
-if($gameVersion -cnotmatch '^3\.0\.(0|[1-9][0-9]*)$' -or -not [int]::TryParse($gameVersion.Substring(4),[ref]$patchNumber)) {throw 'This build allows PEAK 3.0 numeric patches only.'}
-if($gameVersion -ne '3.0.0') {Write-Warning "PEAK $gameVersion is unverified. Runtime interface checks must pass; gameplay, networking and save bugs are still possible."}
+if($gameVersion -cmatch '^(3\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))--logFile$') { $gameVersion=$Matches[1] }
+$versionPart=0
+if($gameVersion -cnotmatch '^3\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or -not [int]::TryParse($Matches[1],[ref]$versionPart) -or -not [int]::TryParse($Matches[2],[ref]$versionPart)) {throw 'This build allows PEAK 3.x numeric versions only.'}
+if($gameVersion -ne '3.0.1') {Write-Warning "PEAK $gameVersion is unverified. Runtime interface checks must pass; gameplay, networking and save bugs are still possible."}
 Add-Type -LiteralPath (Join-Path $GamePath 'BepInEx\core\Mono.Cecil.dll')
 $sourceIds=@(Plugin-Ids $DllPath)
-if($sourceIds.Count -ne 1 -or $sourceIds[0].Guid -ne '13dastardlyascents' -or $sourceIds[0].Version -ne '1.5.22') {throw 'Unexpected source plugin identity/version.'}
+if($sourceIds.Count -ne 1 -or $sourceIds[0].Guid -ne '13dastardlyascents' -or $sourceIds[0].Version -ne '1.5.23') {throw 'Unexpected source plugin identity/version.'}
 $targetRelative='BepInEx\plugins\PeakAscentsContinued\13dda.dll'
 $target=Safe-GamePath $GamePath $targetRelative
 $configRelative='BepInEx\config\13dastardlyascents.cfg'
@@ -70,5 +70,5 @@ $installed=@(Find-InstalledMod $GamePath)
 if($installed.Count -ne 1 -or $installed[0] -ne $target){throw 'Unexpected duplicate plugin after installation; see backup manifest.'}
 $manifest.Completed=$true
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-Write-Output "Installed Continued 1.5.22. Verified backup (including saved-run metadata): $backup"
+Write-Output "Installed Continued 1.5.23. Verified backup (including saved-run metadata): $backup"
 Write-Output "Restore with tools/restore.ps1 -BackupDirectory `"$backup`" -Apply"

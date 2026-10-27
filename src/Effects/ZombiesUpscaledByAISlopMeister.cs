@@ -11,7 +11,7 @@ internal static class ZombiesUpscaledByAISlopMeister
 		if (!(Rules.Enabled(9))) return;
 		if (Rules.Enabled(9))
 		{
-			EffectState.Set(__instance, "maxActiveZombies", 10);
+			EffectState.Set(__instance, nameof(__instance.maxActiveZombies), 10);
 		}
 	}
 }
