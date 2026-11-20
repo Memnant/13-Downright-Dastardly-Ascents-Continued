@@ -13,7 +13,7 @@ namespace dda;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "13dastardlyascents";
-    public const string Version = "1.5.23";
+    public const string Version = "1.5.24";
     public const string SupportedGame = GameVersionPolicy.VerifiedGame;
     internal static string ActualGameVersion = SupportedGame;
     internal static ManualLogSource Log;
@@ -111,6 +111,22 @@ public sealed class Plugin : BaseUnityPlugin
 
 internal static class EffectDescriptions
 {
+    private static readonly string[] BoardingSummaries = {
+        "水母、毒刺和爆炸更危险。",
+        "落单引来领队，队友死亡可添诅咒。",
+        "开箱会受伤，箱子越稀有越痛。",
+        "食物、治疗和工具效果减弱。",
+        "摔伤会额外积累困倦。",
+        "风暴和岩浆增强，追赶雾更致命。",
+        "城塞倦霾和天底石化雾上升更快。",
+        "夜间困倦无法自然恢复。",
+        "寒冷、炎热、困倦和中毒增长更快。",
+        "追赶雾加速，蔓延至火山和雾沼。",
+        "更多地区受到日照影响。",
+        "最终关前，各地都有雪暴和额外龙卷风。"
+    };
+    internal static string BoardingSummary(int level) => BoardingSummaries[level - DifficultySnapshot.FirstLevel];
+
     private static readonly string[] Text = {
         "环境危害更加致命；水母和海岸毒刺每次 40 点毒，不叠加天阶 17。", "规则 0 更严格；队友距离过远会被追击，死亡可连带诅咒。",
         "打开行李箱会受伤，稀有箱子的伤害更高。", "食物、治疗、工具及部分复活效果削弱；滑翔翼持续耗体力 ×1.5。",

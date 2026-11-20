@@ -220,18 +220,19 @@ internal static class uberSplode
 	// The old body used AddForce(..., 2.1f, 5.2f) instead of the native 0.7f-1.3f random range:
 	// on average 3.65 times the native push. Items were not scaled, so their multiplier is divided back.
 	internal const float KnockbackScale = 3.65f;
-	[System.ThreadStatic] private static int explosionDepth;
-	internal static bool InExplosion => explosionDepth > 0;
+	[System.ThreadStatic] private static HashSet<AOE> activeExplosions;
+	internal static bool InExplosion => activeExplosions is { Count: > 0 };
 	internal struct Scaled
 	{
-		internal bool changed, status;
+		internal bool changed, status, replacedOverrides;
 		internal float statusAmount, fallTime, knockback, vertical, items;
+		internal List<float> originalOverrides;
 	}
 
 	internal static void Prefix(AOE __instance, out Scaled __state)
 	{
 		__state = default;
-		if (!Rules.Enabled(9)) return;
+		if (!Rules.Enabled(9) || !(activeExplosions ??= new HashSet<AOE>()).Add(__instance)) return;
 		__state = new Scaled {
 			changed = true, status = string.IsNullOrEmpty(__instance.illegalStatus), statusAmount = __instance.statusAmount,
 			fallTime = __instance.fallTime, knockback = __instance.knockback,
@@ -239,17 +240,31 @@ internal static class uberSplode
 		};
 		// Illegal statuses and blindness were never doubled by the old explosion.
 		if (__state.status) __instance.statusAmount *= StatusScale;
+		int additional = __instance.addtlStatus?.Length ?? 0;
+		var amounts = __instance.addlStatusAmountOverrides;
+		if (additional > 0 && (amounts == null || amounts.Count > 0 || !__state.status))
+		{
+			// The native loop prefers per-slot overrides to statusAmount. For a
+			// blind blast the fallback for an additional slot is still a status,
+			// while the primary amount measures the original blindness duration.
+			var scaled = new List<float>(additional);
+			for (int i = 0; i < additional; i++)
+				scaled.Add((amounts != null && i < amounts.Count ? amounts[i] : __state.statusAmount) * StatusScale);
+			__state.originalOverrides = amounts;
+			__state.replacedOverrides = true;
+			__instance.addlStatusAmountOverrides = scaled;
+		}
 		__instance.fallTime *= FallScale;
 		__instance.knockback *= KnockbackScale;
 		__instance.additionalVerticalKnockback *= KnockbackScale;
 		__instance.itemKnockbackMultiplier /= KnockbackScale;
-		explosionDepth++;
 	}
 
 	internal static System.Exception Finalizer(AOE __instance, Scaled __state, System.Exception __exception)
 	{
 		if (!__state.changed) return __exception;
-		explosionDepth--;
+		activeExplosions.Remove(__instance);
+		if (__state.replacedOverrides) __instance.addlStatusAmountOverrides = __state.originalOverrides;
 		__instance.statusAmount = __state.statusAmount;
 		__instance.fallTime = __state.fallTime;
 		__instance.knockback = __state.knockback;

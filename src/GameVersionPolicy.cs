@@ -5,12 +5,12 @@ namespace dda;
 
 public static class GameVersionPolicy
 {
-    public const string VerifiedGame = "3.0.1";
+    public const string VerifiedGame = "3.1.0";
     public const string AllowedSeries = "3.x";
     public const int NativeSaveVersion = 4;
     private const string PackagingSuffix = "--logFile";
 
-    // Steam builds of 3.0.x (3.0.0 and 3.0.1 so far) write version.txt as "<version>--logFile".
+    // Steam builds including 3.0.1 and 3.1.0 write version.txt as "<version>--logFile".
     // Strip exactly that suffix, and only from an otherwise valid 3.x numeric version.
     // Do not strip arbitrary command-like suffixes or alter the game file.
     public static string Normalize(string version)

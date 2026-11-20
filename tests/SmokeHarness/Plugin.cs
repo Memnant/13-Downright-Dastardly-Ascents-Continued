@@ -49,6 +49,7 @@ public sealed class SmokeHarness : BaseUnityPlugin
             int game26SaveAssertions = Game26SaveRegression.Run();
             int patchSaveAssertions = PatchSaveRegression.Run(plugin.GetType().Assembly);
             int game30ExplosionAssertions = Game30ExplosionRegression.Run(plugin.GetType().Assembly);
+            int boardingLayoutAssertions = BoardingPassLayoutRegression.Run(plugin.GetType().Assembly);
             success = ready && expected.Length > 0 && missing.Length == 0 && numericAssertions >= 90;
             File.WriteAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"),
                 (success ? "PASSED_LOAD" : "FAILED_LOAD") + "\nPluginReady=" + ready + "\nDistinctTargets=" + targets.Length + "\nMissingTargets=" + string.Join(",", missing) + "\nTemporaryStatsAssertions=" + numericAssertions + "\nTrackedStatsAssertions=" + trackedAssertions + "\nSyntheticNativeDragAssertions=" + dragAssertions + "\nRecoveryAndReleaseAssertions=" + regressionAssertions + "\nNativeSurfaceAndItemAssertions=" + surfaceAssertions + "\nCitadelParameterAndReadinessAssertions=" + citadelAssertions + "\n" + string.Join("\n", targets));
@@ -70,6 +71,7 @@ public sealed class SmokeHarness : BaseUnityPlugin
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nGame26NativeSaveAssertions=" + game26SaveAssertions);
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nPatchSaveFixtureAssertions=" + patchSaveAssertions);
             File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nGame30ExplosionAssertions=" + game30ExplosionAssertions);
+            File.AppendAllText(Path.Combine(Paths.BepInExRootPath, "smoke-result.txt"), "\nBoardingLayoutAssertions=" + boardingLayoutAssertions);
             Logger.LogInfo("SMOKE_RESULT=" + success + "; this is a load test only, no gameplay or multiplayer assertions.");
         }
         catch (Exception error)
@@ -311,7 +313,7 @@ public sealed class SmokeHarness : BaseUnityPlugin
             controller.GetMethod("BeforeNativeTarget", flags).Invoke(null, new object[] { scout, 60f });
             forcedField.SetValue(scout, Time.time + 60f);
             controller.GetMethod("ReleaseLocal", flags).Invoke(null, null);
-            Assert(targetField.GetValue(scout) == character, "external forced summon is not canceled by old lease");
+            Assert(ReferenceEquals(targetField.GetValue(scout), character), "external forced summon is not canceled by old lease");
             return checks;
         }
         finally

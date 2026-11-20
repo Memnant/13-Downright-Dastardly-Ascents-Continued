@@ -16,9 +16,10 @@ internal sealed class CompatibilityReport
 
 internal static class RuntimeCompatibility
 {
-    // PEAK 3.0.1, Steam build 26155610. Against 3.0.0 (b5521262-...) only MainMenuJoinRoomPage
-    // changed; none of the patched targets or checked save fields did.
-    private const string VerifiedMvid = "136be7ad-59b8-46b6-803a-88c02a9d5c13";
+    // Keep the previously checked build when adding a new Steam baseline.
+    private static bool KnownBuild(string version, string mvid) =>
+        (version == "3.0.1" && mvid == "136be7ad-59b8-46b6-803a-88c02a9d5c13") ||
+        (version == GameVersionPolicy.VerifiedGame && mvid == "e9a4fa24-a068-4abd-8c8d-66c4b2b65471");
 
     // Metadata only, once at startup, before PatchAll. No game code executes,
     // and all assemblies are opened read-only and disposed before returning.
@@ -35,7 +36,7 @@ internal static class RuntimeCompatibility
         using var mod = AssemblyDefinition.ReadAssembly(pluginPath, reader);
         var report = new CompatibilityReport {
             GameMvid = game.MainModule.Mvid.ToString(),
-            UnverifiedBuild = GameVersionPolicy.Normalize(version) != GameVersionPolicy.VerifiedGame || game.MainModule.Mvid.ToString() != VerifiedMvid
+            UnverifiedBuild = !KnownBuild(GameVersionPolicy.Normalize(version), game.MainModule.Mvid.ToString())
         };
         var errors = new List<string>();
         foreach (var reference in mod.MainModule.GetMemberReferences())

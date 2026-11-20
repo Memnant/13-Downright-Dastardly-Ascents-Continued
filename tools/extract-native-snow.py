@@ -30,23 +30,24 @@ def sha(data):
 
 def extract(game: Path, output: Path):
     version = (game / 'version.txt').read_text(encoding='utf-8-sig').splitlines()[0].strip()
-    # This exact packaging suffix is present in the audited Steam 3.0.0 build.
-    if version == '3.0.0--logFile': version = '3.0.0'
+    if version in ('3.0.0--logFile', '3.1.0--logFile'):
+        version = version.removesuffix('--logFile')
     audited = {
         '2.4.c': ('C067125B9833EF1F2881AB97FDCA574BE7C67F45C8ADD77B9E0A8AB82C4FE9F7', 137517, 342491, 592736),
         '2.5.a': ('F874FA50F6E2B15D5270BF4891C1A377C22584E6F38621CB17909FFEF99923B8', 123191, 312606, 546689),
         '2.6.a': ('B9A363213352EA58496F2F8598FA267C565BAF876F8C524EB56266764F8C199B', 132899, 336149, 592619),
         '3.0.0': ('E9A8585ABFA566AFA7A3EF3E3699BC27369039EEEFCDB3CAA38D624D56F59E5C', 108629, 276552, 478314),
+        '3.1.0': ('A3643F11DC444D86491270B224C0A0CAF9126A10B26731FEB97FC85AD1D82038', 108629, 276552, 478314),
     }
     if version not in audited:
-        raise ValueError('This extractor supports audited PEAK 2.4.c, 2.5.a, 2.6.a and 3.0.0 builds only.')
+        raise ValueError('Audited PEAK builds for extraction: ' + ', '.join(audited))
     expected_hash, snow_id, transform_id, particle_id = audited[version]
     suffix = version.replace('.', '')
     data_root = game / 'PEAK_Data'
     asm_hash = sha((data_root / 'Managed/Assembly-CSharp.dll').read_bytes())
     if asm_hash != expected_hash:
         raise ValueError('Game assembly does not match the audited build.')
-    map_bundle = version == '3.0.0'
+    map_bundle = version in ('3.0.0', '3.1.0')
     scene_name = 'BuildPlayer-Level_22' if map_bundle else 'level7'
     shared_name = scene_name + '.sharedAssets'
     fog_key = (shared_name, 712) if map_bundle else ('sharedassets0.assets', 20)

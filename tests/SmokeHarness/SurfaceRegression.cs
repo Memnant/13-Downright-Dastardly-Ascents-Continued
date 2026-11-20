@@ -165,6 +165,24 @@ internal static class SurfaceRegression
             try { onClimb.Invoke(surface, new object[] { character }); }
             catch (TargetInvocationException e) when (e.InnerException is InvalidOperationException) { threw = true; }
             Assert(threw && (float)surfaceType.GetField("statusAmount", Flags).GetValue(surface) == .1f, "exception path restores rock amount");
+            var luggage = fixture.AddComponent(AccessTools.TypeByName("Luggage"));
+            var state = AccessTools.Field(luggage.GetType(), "state");
+            var penalty = AccessTools.Method(mod.GetType("dda.yeeeeouch"), "Prefix");
+            var interact = AccessTools.Method(luggage.GetType(), "Interact_CastFinished");
+            active.SetValue(null, Activator.CreateInstance(mod.GetType("dda.DifficultySnapshot"), 11, 0, true, true));
+            foreach (var (name, injury) in new[] {
+                ("LuggageSmall (1)", .06f), ("LuggageSmall (2)(Clone)", .06f), ("LuggageEpic (1)", .16f),
+                ("LuggageEpic (2)", .16f), ("LuggageBig", .10f), ("LuggageAncient", .10f), ("LuggageSmallExtra", .10f) })
+            {
+                luggage.name = name;
+                state.SetValue(luggage, Enum.Parse(state.FieldType, "Closed"));
+                ResetCounters();
+                penalty.Invoke(null, new object[] { luggage, character });
+                Assert(statusCalls == 1 && statusAmount == injury, "closed luggage injury matches the prefab family: " + name);
+                state.SetValue(luggage, Enum.Parse(state.FieldType, "Open"));
+                interact.Invoke(luggage, new object[] { character });
+                Assert(statusCalls == 1, "stale native interaction does not charge again: " + name);
+            }
             return checks;
             void Set(string name, object value) => surfaceType.GetField(name, Flags).SetValue(surface, value);
         }

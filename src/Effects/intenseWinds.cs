@@ -10,6 +10,32 @@ namespace dda;
 internal static class intenseWinds
 {
 	internal struct Suppressed { internal bool changed, slippy; internal float status; }
+	private static CharacterClimbing localClimber;
+	private static int appliedFrame = -1;
+	private static float strongestMinimum;
+
+	private static void CombineMinimum(CharacterClimbing climbing)
+	{
+		if (localClimber != climbing) ResetMinimum();
+		float nativeMinimum = climbing.climbingStamMinimumMultiplier;
+		strongestMinimum = appliedFrame == Time.frameCount ? Mathf.Max(strongestMinimum, nativeMinimum) : nativeMinimum;
+		appliedFrame = Time.frameCount;
+		localClimber = climbing;
+		climbing.climbingStamMinimumMultiplier = strongestMinimum;
+	}
+
+	internal static void EndFrame()
+	{
+		if (appliedFrame >= 0 && appliedFrame != Time.frameCount) ResetMinimum();
+	}
+
+	internal static void ResetMinimum()
+	{
+		if (localClimber != null && localClimber.climbingStamMinimumMultiplier == strongestMinimum)
+			localClimber.climbingStamMinimumMultiplier = 1f;
+		localClimber = null;
+		appliedFrame = -1;
+	}
 
 	// Native ApplyStatus still runs: it computes windPlayerFactor and PEAK 3.0's wind
 	// climbing-stamina multiplier. Only its single status/slip delivery is switched off
@@ -44,7 +70,11 @@ internal static class intenseWinds
 		if (!__state.changed) return __exception;
 		__instance.statusApplicationPerSecond = __state.status;
 		__instance.setSlippy = __state.slippy;
-		if (__exception == null) ApplyTieredStatus(__instance, character);
+		if (__exception == null)
+		{
+			CombineMinimum(character.refs.climbing);
+			ApplyTieredStatus(__instance, character);
+		}
 		return __exception;
 	}
 

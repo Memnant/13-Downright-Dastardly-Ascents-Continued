@@ -1,6 +1,6 @@
 # 本地生成的原版雪暴资源
 
-`NativeAlpineSnow.bundle` 来源于受支持的本机 PEAK 2.5.a 安装，归游戏资源权利人所有，不提交到 Git。
+`NativeAlpineSnow.bundle` 从开发者的本地 PEAK 安装生成。1.5.24 使用 3.1.0 / Steam Build 26542162。游戏资源归其权利人所有。
 
 在仓库根目录安装 `requirements-dev.txt` 中的工具，然后运行：
 

@@ -65,6 +65,7 @@ internal static class EffectState
     }
     internal static void Reset()
     {
+        intenseWinds.ResetMinimum();
         ChasingFogTint.Reset();
         SwampChasingFog.Reset();
         foreach (var change in changes)

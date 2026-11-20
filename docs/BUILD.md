@@ -1,6 +1,6 @@
 # 从源码构建
 
-本仓库运行时 `src/**/*.cs` 对应 1.5.23。开发环境以 **Windows x64、PowerShell、PEAK 3.0.1 / Build 26155610、BepInEx 5** 为基准，输出目标为 **.NET Standard 2.1**。运行时版本放宽不改变构建时的核查基线；视觉资源提取器仍限定已核查的版本与哈希，目前只支持从 3.0.0 提取，1.5.23 沿用 3.0.0 提取的资源包。
+1.5.24 以 **Windows x64、PEAK 3.1.0 / Steam Build 26542162、BepInEx 5** 构建，输出目标为 **.NET Standard 2.1**。下列步骤可以直接使用这一版游戏生成所需的雪暴资源。
 
 ## 准备
 
@@ -23,7 +23,7 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 
 3.0 将地图移到 `PEAK_Data/StreamingAssets/maps/*.assetbundle`。提取器从已核查的 `levels0-31.assetbundle` 读取原版雪暴与追赶雾纹理，通过可寻址流和 8 MiB 解压块缓存读取所需部分，不把整个地图包展开到内存或磁盘。提取后的 9 个原版视觉对象与上一版字段一致；构建时重新定位资源，游戏运行时仍使用 DLL 内的精简资源包。
 
-该 Steam 构建的 `version.txt` 首行实际为 `3.0.0--logFile`。提取器和插件仅将这一已核查的完整字符串识别为 `3.0.0`，不改写游戏文件，也不接受任意附加后缀。
+该 Steam 构建的 `version.txt` 首行为 `3.1.0--logFile`。提取器识别这一标签，并核对主程序集 SHA-256。
 
 ## 构建和检查
 
@@ -54,7 +54,7 @@ python .\tools\extract-native-snow.py --game 'D:\SteamLibrary\steamapps\common\P
 | `src/RunCoordinator.cs` | 房主规则、开局与房间状态 |
 | `src/RunSaveStore.cs`、`src/SavedRuleRecord.cs` | RunId 侧存档和版本兼容 |
 | `src/GameVersionPolicy.cs`、`src/RuntimeCompatibility.cs` | 允许的版本范围与启动接口检查 |
-| `src/AirportSelector.cs` | 机场难度/免宝石面板 |
+| `src/AirportSelector.cs` | 官方登机证箭头、难度摘要与票根免宝石按钮 |
 | `src/EffectState.cs` | 参数保存和跨局还原 |
 | `src/Effects/` | 各项原效果适配及新增地区效果 |
 | `src/Effects/ChasingFogTint.cs` | 火山、雾沼追赶雾颜色与 150 米渐隐 |

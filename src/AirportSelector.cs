@@ -8,174 +8,206 @@ namespace dda;
 [HarmonyPatch(typeof(BoardingPass), "OnOpen")]
 internal static class CreateContinuedSelector
 {
-    private static void Postfix(BoardingPass __instance)
+    private static void Prefix(BoardingPass __instance)
     {
-        if (__instance.GetComponent<AirportSelector>() == null) __instance.gameObject.AddComponent<AirportSelector>();
+        if (!__instance.TryGetComponent<AirportSelector>(out _))
+            __instance.gameObject.AddComponent<AirportSelector>();
     }
 }
 
 [HarmonyPatch(typeof(BoardingPass), "UpdateAscent")]
 internal static class ContinuedBoardingDescription
 {
-    private static void Prefix(BoardingPass __instance)
+    private static void Prefix()
     {
-        if (RunCoordinator.Selected.IsExtended && !RunSettings.IsCustomRun) __instance.ascentIndex = 8;
+        if (RunCoordinator.Selected.IsExtended && RunSettings.IsCustomRun)
+            RunSettings.IsCustomRun = false;
     }
+
+    [HarmonyPriority(Priority.Last)]
     private static void Postfix(BoardingPass __instance)
     {
-        if (!RunCoordinator.Selected.IsExtended || RunSettings.IsCustomRun) return;
-        int level = RunCoordinator.Selected.Ascent;
-        __instance.ascentTitle.text = "续作天阶 " + level;
-        __instance.ascentDesc.text = EffectDescriptions.Get(level) + "\n\n包含官方天阶 8 与续作天阶 9–" + level + " 的累加效果。" +
-            (RunCoordinator.Selected.GrantsSummitHonor ? "\n免宝石已开启：登顶领取童军的荣耀，继续后续通关流程。" : "");
-        __instance.reward.SetActive(false);
-        __instance.incrementAscentButton.interactable = false;
-        __instance.decrementAscentButton.interactable = false;
+        if (__instance.TryGetComponent<AirportSelector>(out var selector)) selector.Refresh();
     }
+}
+
+[HarmonyPatch(typeof(BoardingPass), nameof(BoardingPass.IncrementAscent))]
+internal static class NextBoardingAscent
+{
+    private static bool Prefix(BoardingPass __instance) => AirportSelector.Step(__instance, 1);
+}
+
+[HarmonyPatch(typeof(BoardingPass), nameof(BoardingPass.DecrementAscent))]
+internal static class PreviousBoardingAscent
+{
+    private static bool Prefix(BoardingPass __instance) => AirportSelector.Step(__instance, -1);
 }
 
 [HarmonyPatch(typeof(BoardingPass), "ToggleCustom")]
 internal static class SeparateCustomRuns
 {
-    private static void Prefix(BoardingPass __instance)
+    private static bool Prefix()
     {
-        if (RunCoordinator.Selected.IsExtended)
-        {
-            RunCoordinator.Select(0);
-            __instance.ascentIndex = 0;
-        }
+        if (!RunCoordinator.Selected.IsExtended) return true;
+        if (!AirportSelector.CanEdit) return false;
+        RunCoordinator.Select(0);
+        return true;
     }
 }
 
 internal sealed class AirportSelector : MonoBehaviour
 {
+    private const float HonorRowFraction = 0.22f;
+    private const float ButtonGap = 12f;
     private BoardingPass pass;
-    private GameObject canvasObject;
-    private TMP_Text selectionText, detailText, statusText, toggleText, honorText;
-    private Button toggle, minus, plus, honorToggle;
-    private int originalSelection;
-    private int lastDisplayed = -1;
-    private bool lastHonor;
-    private bool blockedStart;
-    private bool savedStartInteractable;
+    private Button honorButton;
+    private TMP_Text honorLabel;
+    private Vector2 fullPosition, fullSizeDelta;
+    private string displayedRules, displayedMessage;
+    private bool displayedCanEdit, startBlocked, customBlocked;
+    private bool startWasInteractable, customWasInteractable;
+    private float nextCheck;
 
-    private void Start()
+    internal static bool CanEdit => RunCoordinator.IsHost && !RunCoordinator.InRun && !LoadingScreenHandler.loading;
+    private static int LastOfficial(BoardingPass ticket) =>
+        Mathf.Clamp(ticket.maxUnlockedAscent, 0, DifficultySnapshot.FirstLevel - 1);
+
+    internal static bool Step(BoardingPass ticket, int direction)
+    {
+        if (RunSettings.IsCustomRun || LoadingScreenHandler.loading || RunCoordinator.InRun) return false;
+        var selected = RunCoordinator.Selected;
+        int next;
+        if (!selected.IsExtended)
+        {
+            if (direction < 0) return ticket.ascentIndex > -1;
+            if (ticket.ascentIndex < LastOfficial(ticket)) return true;
+            next = DifficultySnapshot.FirstLevel;
+        }
+        else
+        {
+            next = selected.Ascent + direction;
+            if (next > DifficultySnapshot.LastLevel) return false;
+            if (next < DifficultySnapshot.FirstLevel) next = 0;
+        }
+
+        if (!CanEdit) return false;
+        // The game's title/reward arrays only accept official indices. The host
+        // supplies base ascent 8 at departure, even for a new player's lobby.
+        if (next == 0) ticket.ascentIndex = LastOfficial(ticket);
+        RunCoordinator.Select(next);
+        ticket.UpdateAscent();
+        return false;
+    }
+
+    private void Awake()
     {
         pass = GetComponent<BoardingPass>();
-        originalSelection = pass.ascentIndex == 8 && RunCoordinator.Selected.IsExtended ? 0 : pass.ascentIndex;
-        canvasObject = new GameObject("ContinuedAscentCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvasObject.transform.SetParent(transform, false);
-        var canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 32000;
-        var scaler = canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-        var panel = new GameObject("ContinuedPanel", typeof(RectTransform), typeof(Image));
-        panel.transform.SetParent(canvasObject.transform, false);
-        var rect = panel.GetComponent<RectTransform>();
-        rect.anchorMin = rect.anchorMax = new Vector2(1, 0.5f);
-        rect.pivot = new Vector2(1, 0.5f);
-        rect.anchoredPosition = new Vector2(-28, 0);
-        rect.sizeDelta = new Vector2(330, 565);
-        panel.GetComponent<Image>().color = new Color(0.08f, 0.11f, 0.12f, 0.97f);
-        MakeText(panel.transform, "天阶延续 · Continued", 18, -20, 294, 34, 25);
-        toggle = MakeButton(panel.transform, "启用续作", 18, -70, 294, 45, out toggleText);
-        toggle.onClick.AddListener(Toggle);
-        minus = MakeButton(panel.transform, "−", 18, -132, 55, 45, out _);
-        plus = MakeButton(panel.transform, "+", 257, -132, 55, 45, out _);
-        minus.onClick.AddListener(() => Change(-1));
-        plus.onClick.AddListener(() => Change(1));
-        selectionText = MakeText(panel.transform, "官方模式", 84, -134, 163, 42, 23);
-        selectionText.alignment = TextAlignmentOptions.Center;
-        detailText = MakeText(panel.transform, "", 18, -194, 294, 150, 19);
-        honorToggle = MakeButton(panel.transform, "免宝石通关：关", 18, -357, 294, 45, out honorText);
-        honorToggle.onClick.AddListener(() => Plugin.SetFreeSummitHonor(!RunCoordinator.Selected.FreeSummitHonor));
-        MakeText(panel.transform, "开启后在顶峰领取荣耀，仍须完成后续流程。", 18, -413, 294, 49, 16);
-        statusText = MakeText(panel.transform, "", 18, -478, 294, 70, 17);
-        statusText.color = new Color(0.93f, 0.80f, 0.47f);
+        honorButton = Instantiate(pass.customOptionsButton, pass.startGameButton.transform.parent, false);
+        honorButton.gameObject.name = "ContinuedFreeSummitHonor";
+        honorButton.gameObject.SetActive(false);
+        honorButton.onClick = new Button.ButtonClickedEvent();
+        honorButton.onClick.AddListener(ToggleHonor);
+        honorLabel = honorButton.GetComponentInChildren<TMP_Text>(true);
+        if (honorLabel.TryGetComponent<LocalizedText>(out var nativeCaption)) nativeCaption.enabled = false;
+        honorLabel.rectTransform.anchorMin = Vector2.zero;
+        honorLabel.rectTransform.anchorMax = Vector2.one;
+        honorLabel.rectTransform.offsetMin = new Vector2(8f, 2f);
+        honorLabel.rectTransform.offsetMax = new Vector2(-8f, -2f);
+        honorLabel.alignment = TextAlignmentOptions.Center;
+        honorLabel.textWrappingMode = TextWrappingModes.NoWrap;
+        honorLabel.enableAutoSizing = true;
+        honorLabel.fontSizeMin = 16f;
+        honorLabel.fontSizeMax = 28f;
+        honorLabel.raycastTarget = false;
+    }
+
+    private void ToggleHonor()
+    {
+        if (!CanEdit || !RunCoordinator.Selected.IsExtended) return;
+        Plugin.SetFreeSummitHonor(!RunCoordinator.Selected.FreeSummitHonor);
+        pass.UpdateAscent();
+    }
+
+    private void ShowHonorButton(bool visible)
+    {
+        if (honorButton.gameObject.activeSelf == visible) return;
+        var start = (RectTransform)pass.startGameButton.transform;
+        if (visible)
+        {
+            fullPosition = start.anchoredPosition;
+            fullSizeDelta = start.sizeDelta;
+            // The native button animator writes localScale on reopen and hover.
+            // Reserve a real row in the rectangle, keeping its top edge fixed.
+            Rect original = start.rect;
+            float rowHeight = original.height * HonorRowFraction;
+            start.sizeDelta = fullSizeDelta - Vector2.up * rowHeight;
+            start.anchoredPosition = fullPosition + Vector2.up * (rowHeight * (1f - start.pivot.y));
+
+            var rect = (RectTransform)honorButton.transform;
+            rect.anchorMin = rect.anchorMax = start.anchorMin + Vector2.Scale(start.anchorMax - start.anchorMin, start.pivot);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(original.width, rowHeight - ButtonGap);
+            rect.anchoredPosition = fullPosition + new Vector2(original.center.x, original.yMin);
+        }
+        else
+        {
+            start.anchoredPosition = fullPosition;
+            start.sizeDelta = fullSizeDelta;
+        }
+        honorButton.gameObject.SetActive(visible);
+    }
+
+    internal void Refresh()
+    {
+        var selected = RunCoordinator.Selected;
+        displayedRules = selected.Encode();
+        displayedCanEdit = CanEdit;
+        ShowHonorButton(selected.IsExtended);
+        if (selected.IsExtended)
+        {
+            pass.ascentTitle.text = "续作天阶 " + selected.Ascent;
+            pass.ascentDesc.text = EffectDescriptions.BoardingSummary(selected.Ascent);
+            pass.reward.SetActive(false);
+            pass.incrementAscentButton.interactable = displayedCanEdit && selected.Ascent < DifficultySnapshot.LastLevel;
+            pass.decrementAscentButton.interactable = displayedCanEdit;
+            honorButton.interactable = displayedCanEdit;
+            honorLabel.text = selected.FreeSummitHonor ? "免宝石通关：开" : "免宝石通关：关";
+        }
+        else if (displayedCanEdit && !RunSettings.IsCustomRun && pass.ascentIndex >= LastOfficial(pass))
+        {
+            pass.incrementAscentButton.interactable = true;
+        }
+
+        displayedMessage = StatusMessage(out bool blockStart);
+        SetBlocked(pass.startGameButton, blockStart, ref startBlocked, ref startWasInteractable);
+        SetBlocked(pass.customRunButton, selected.IsExtended && !displayedCanEdit, ref customBlocked, ref customWasInteractable);
+        if (!string.IsNullOrEmpty(displayedMessage)) pass.ascentDesc.text = displayedMessage;
+    }
+
+    private static string StatusMessage(out bool blockStart)
+    {
+        blockStart = !RunCoordinator.AllReady(out string reason);
+        return blockStart ? reason : RunCoordinator.Notice;
+    }
+
+    private static void SetBlocked(Button button, bool block, ref bool blocked, ref bool wasInteractable)
+    {
+        if (block)
+        {
+            if (!blocked) wasInteractable = button.interactable;
+            button.interactable = false;
+        }
+        else if (blocked) button.interactable = wasInteractable;
+        blocked = block;
     }
 
     private void Update()
     {
-        if (canvasObject == null || pass == null) return;
-        canvasObject.SetActive(pass.isOpen);
-        if (!pass.isOpen) return;
-        bool host = RunCoordinator.IsHost && !RunCoordinator.InRun && !LoadingScreenHandler.loading;
-        int level = RunCoordinator.Selected.Ascent;
-        bool extended = level >= 9;
-        toggle.interactable = host;
-        minus.interactable = host && level > 9;
-        plus.interactable = host && extended && level < 20;
-        honorToggle.interactable = host && extended;
-        honorText.text = "免宝石通关：" + (RunCoordinator.Selected.FreeSummitHonor ? "开" : "关");
-        toggleText.text = extended ? "切回官方模式" : "启用续作天阶 9–20";
-        selectionText.text = extended ? "天阶 " + level : "官方模式";
-        detailText.text = extended ? EffectDescriptions.Get(level) + "\n\n保留官方 7、8；18 阶追赶雾覆盖火山、雾沼。" : "官方难度按原有进度解锁。\n续作 9–20 全部可选，独立于官方天阶进度。";
-        bool ready = RunCoordinator.AllReady(out string reason);
-        statusText.text = !string.IsNullOrEmpty(RunCoordinator.Notice) ? RunCoordinator.Notice :
-            (!host ? "难度由房主选择。\n" : "") + (ready ? "使用相同版本即可开始。" : reason);
-        if (!ready && RunCoordinator.Selected.HasEffects)
-        {
-            if (!blockedStart) savedStartInteractable = pass.startGameButton.interactable;
-            blockedStart = true;
-            pass.startGameButton.interactable = false;
-        }
-        else if (blockedStart)
-        {
-            pass.startGameButton.interactable = savedStartInteractable;
-            blockedStart = false;
-        }
-        if (level != lastDisplayed || lastHonor != RunCoordinator.Selected.FreeSummitHonor)
-        {
-            lastDisplayed = level;
-            lastHonor = RunCoordinator.Selected.FreeSummitHonor;
-            if (extended) { RunSettings.IsCustomRun = false; pass.ascentIndex = 8; }
-            else pass.ascentIndex = Mathf.Clamp(originalSelection, -1, 8);
+        if (!pass.isOpen || Time.unscaledTime < nextCheck) return;
+        nextCheck = Time.unscaledTime + 0.2f;
+        string message = StatusMessage(out bool blockStart);
+        if (displayedRules != RunCoordinator.Selected.Encode() || displayedCanEdit != CanEdit ||
+            displayedMessage != message || startBlocked != blockStart)
             pass.UpdateAscent();
-        }
-    }
-
-    private void Toggle()
-    {
-        if (RunCoordinator.Selected.IsExtended) RunCoordinator.Select(0);
-        else { originalSelection = pass.ascentIndex; RunSettings.IsCustomRun = false; RunCoordinator.Select(9); }
-    }
-    private void Change(int delta) => RunCoordinator.Select(Mathf.Clamp(RunCoordinator.Selected.Ascent + delta, 9, 20));
-    private void OnDestroy() { if (canvasObject != null) Destroy(canvasObject); }
-
-    private TMP_Text MakeText(Transform parent, string text, float x, float y, float width, float height, float fontSize)
-    {
-        var obj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        obj.transform.SetParent(parent, false);
-        Position(obj.GetComponent<RectTransform>(), x, y, width, height);
-        var label = obj.GetComponent<TextMeshProUGUI>();
-        label.font = pass.ascentDesc.font;
-        label.fontSize = fontSize;
-        label.color = Color.white;
-        label.text = text;
-        label.textWrappingMode = TextWrappingModes.Normal;
-        label.raycastTarget = false;
-        return label;
-    }
-    private Button MakeButton(Transform parent, string text, float x, float y, float width, float height, out TMP_Text label)
-    {
-        var obj = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button));
-        obj.transform.SetParent(parent, false);
-        Position(obj.GetComponent<RectTransform>(), x, y, width, height);
-        obj.GetComponent<Image>().color = new Color(0.20f, 0.35f, 0.32f, 1f);
-        var button = obj.GetComponent<Button>();
-        button.targetGraphic = obj.GetComponent<Image>();
-        label = MakeText(obj.transform, text, 2, -2, width - 4, height - 4, 20);
-        label.alignment = TextAlignmentOptions.Center;
-        return button;
-    }
-    private static void Position(RectTransform rect, float x, float y, float width, float height)
-    {
-        rect.anchorMin = rect.anchorMax = new Vector2(0, 1);
-        rect.pivot = new Vector2(0, 1);
-        rect.anchoredPosition = new Vector2(x, y);
-        rect.sizeDelta = new Vector2(width, height);
     }
 }

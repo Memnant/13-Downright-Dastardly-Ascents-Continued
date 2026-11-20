@@ -106,6 +106,30 @@ internal static class WeatherRegression
                 bounds.SetValue(zone, external); reset.Invoke(null, null);
                 Assert((Bounds)bounds.GetValue(zone) == external, "reset preserves a later change made by another mod");
             }
+            var climbing = fixture.AddComponent(AccessTools.TypeByName("CharacterClimbing"));
+            var floor = AccessTools.Field(climbing.GetType(), "climbingStamMinimumMultiplier");
+            var windPatch = mod.GetType("dda.intenseWinds");
+            var combine = AccessTools.Method(windPatch, "CombineMinimum");
+            var frame = AccessTools.Field(windPatch, "appliedFrame");
+            var endFrame = AccessTools.Method(windPatch, "EndFrame");
+            foreach (float[] order in new[] { new[] { 3f, 1f }, new[] { 1f, 3f } })
+            {
+                foreach (float floorForZone in order)
+                {
+                    floor.SetValue(climbing, floorForZone);
+                    combine.Invoke(null, new object[] { climbing });
+                }
+                Assert((float)floor.GetValue(climbing) == 3f, "strongest simultaneous wind cost in both update orders");
+                // Use a different frame stamp. This fixture runs synchronously in Awake.
+                frame.SetValue(null, Time.frameCount + 1);
+                endFrame.Invoke(null, null);
+                Assert((float)floor.GetValue(climbing) == 1f, "quiet frame releases wind cost");
+            }
+            floor.SetValue(climbing, 3f);
+            combine.Invoke(null, new object[] { climbing });
+            floor.SetValue(climbing, 2f);
+            reset.Invoke(null, null);
+            Assert((float)floor.GetValue(climbing) == 2f, "airport cleanup preserves another writer's floor");
             return checks;
         }
         finally

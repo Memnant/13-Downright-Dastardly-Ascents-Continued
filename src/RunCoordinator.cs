@@ -105,10 +105,10 @@ internal static class RunCoordinator
         {
             if (ReadinessPolicy.Check(Selected, Plugin.Version, player.CustomProperties[VersionKey] as string,
                 player.CustomProperties[AckKey] as string) == PeerReadiness.VersionMismatch)
-            { reason = "还有玩家未安装相同版本的 Continued " + Plugin.Version + "。"; return false; }
+            { reason = "队友需要安装 Continued " + Plugin.Version + "。"; return false; }
             if (ReadinessPolicy.Check(Selected, Plugin.Version, player.CustomProperties[VersionKey] as string,
                 player.CustomProperties[AckKey] as string) == PeerReadiness.RulesPending)
-            { reason = "正在等待所有玩家同步难度配置，请稍后再开始。"; return false; }
+            { reason = "正在等待队友同步难度。"; return false; }
         }
         return true;
     }
@@ -119,7 +119,7 @@ internal static class RunCoordinator
         bool freshDeparture = !InRun;
         if (!InRun) Selected = Plugin.Selection(Selected.Ascent);
         Publish(false);
-        if (!AllReady(out var reason)) { Notice = reason; Plugin.Log.LogWarning(reason); return false; }
+        if (!AllReady(out var reason)) { Plugin.Log.LogWarning(reason); return false; }
         if (Selected.IsExtended)
         {
             ascent = 8;
@@ -229,6 +229,7 @@ internal sealed class ContinuedNetwork : MonoBehaviourPunCallbacks
         if (RunCoordinator.IsHost) { Plugin.AdoptHostOption(); RunCoordinator.Publish(RunCoordinator.InRun); }
     }
     public override void OnPlayerEnteredRoom(NetworkPlayer player) => RunCoordinator.Advertise();
+    private void LateUpdate() => intenseWinds.EndFrame();
     private void Update()
     {
         TideSync.Tick();
